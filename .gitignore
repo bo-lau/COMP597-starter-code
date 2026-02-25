@@ -206,3 +206,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Synthetic / cached data (large, regenerated locally)
+synthetic_whisper_data.pt

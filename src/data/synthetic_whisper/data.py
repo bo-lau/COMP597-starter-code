@@ -1,4 +1,5 @@
 import os
+import math
 import torch
 import torch.utils.data
 import src.config as config
@@ -9,28 +10,43 @@ data_load_name = "synthetic_whisper"
 N_SAMPLES = 5500
 SAMPLE_RATE = 16000
 PROGRESS_INTERVAL = 500
+BATCH_SIZE = 64
 
 
-def generate_samples(n, data_path, num_labels):
+def generate_samples(n, data_path, num_labels, batch_size=BATCH_SIZE):
     feature_extractor = WhisperFeatureExtractor.from_pretrained("openai/whisper-tiny")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cuda":
         print("Using GPU for feature extraction (faster)")
     samples = []
-    for i in range(n):
-        wav = (torch.rand(SAMPLE_RATE) * 2 - 1).tolist()
-        extract_kwargs = {"sampling_rate": SAMPLE_RATE, "return_tensors": "pt"}
+    num_batches = math.ceil(n / batch_size)
+    extract_kwargs = {"sampling_rate": SAMPLE_RATE, "return_tensors": "pt"}
+
+    for batch_idx in range(num_batches):
+        remaining = n - batch_idx * batch_size
+        current_batch_size = min(batch_size, remaining)
+
+        # Generate a batch of random waveforms in a single vectorized operation
+        wavs = (torch.rand(current_batch_size, SAMPLE_RATE) * 2 - 1).tolist()
+
+        # Run feature extraction in a single batched call
         try:
-            input_features = feature_extractor(wav, device=device, **extract_kwargs)["input_features"][0]
+            batch_input_features = feature_extractor(wavs, device=device, **extract_kwargs)["input_features"]
         except TypeError:
-            input_features = feature_extractor(wav, **extract_kwargs)["input_features"][0]
-        label = torch.randint(0, num_labels, ())
-        samples.append({
-            "input_features": input_features,
-            "labels": label
-        })
-        if (i + 1) % PROGRESS_INTERVAL == 0 or (i + 1) == n:
-            print(f"Generated {i + 1}/{n} samples...")
+            batch_input_features = feature_extractor(wavs, **extract_kwargs)["input_features"]
+
+        # Generate labels for the whole batch at once
+        batch_labels = torch.randint(0, num_labels, (current_batch_size,))
+
+        for i in range(current_batch_size):
+            samples.append({
+                "input_features": batch_input_features[i],
+                "labels": batch_labels[i]
+            })
+
+        generated = min(n, (batch_idx + 1) * batch_size)
+        if generated % PROGRESS_INTERVAL == 0 or generated == n:
+            print(f"Generated {generated}/{n} samples...")
 
     torch.save(samples, data_path)
     return samples
