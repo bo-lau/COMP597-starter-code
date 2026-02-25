@@ -1,8 +1,13 @@
 import logging
 import os
 logger = logging.getLogger(__name__)
+
+# Get log level from environment variable, compatible with Python < 3.11
+_log_level_name = os.environ.get("COMP597_LOG_LEVEL", "WARNING")
+_log_level = getattr(logging, _log_level_name.upper(), logging.WARNING)
+
 logging.basicConfig(
-    level=logging.getLevelNamesMapping().get(os.environ.get("COMP597_LOG_LEVEL", "WARNING"), logging.WARNING),
+    level=_log_level,
     format="[{levelname:.4}] : {asctime} : {module:<24.24} : {message}",
     datefmt="%Y-%m-%dT%H:%M:%S",
     style='{',

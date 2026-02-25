@@ -1,6 +1,13 @@
-from typing import Any, Dict, Self
+from __future__ import annotations
+from typing import Any, Dict, TYPE_CHECKING
 import argparse
 import logging
+
+if TYPE_CHECKING:
+    from typing import Self
+else:
+    # Python < 3.11 compatibility: use string annotation
+    Self = "_BaseConfig"
 logger = logging.getLogger(__name__)
 
 _AUTO_DISCOVERY_IGNORE=True
@@ -47,7 +54,7 @@ class _BaseConfig:
                 args[self._get_arg_name(attr)] = val
         return args
 
-    def _get_subconfigs(self) -> Dict[str, Self]:
+    def _get_subconfigs(self) -> Dict[str, _BaseConfig]:
         subconfigs = {}
         for attr in self.__dict__.keys():
             val = getattr(self, attr)
