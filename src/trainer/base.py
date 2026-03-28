@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import time
 from typing import Any, Dict, Optional, Tuple
 import src.trainer.stats as stats
 import torch
@@ -46,19 +47,21 @@ class Trainer(ABC):
 
     """
 
-    def __init__(self, 
-                 model : nn.Module, 
-                 loader : data.DataLoader, 
-                 device : torch.device, 
-                 stats : stats.TrainerStats = stats.NOOPTrainerStats(), 
-                 enable_checkpointing : bool = False,
-                 checkpoint_frequency : int = 1):
+    def __init__(self,
+                 model: nn.Module,
+                 loader: data.DataLoader,
+                 device: torch.device,
+                 stats: stats.TrainerStats = stats.NOOPTrainerStats(),
+                 enable_checkpointing: bool = False,
+                 checkpoint_frequency: int = 1,
+                 max_time_minutes: float = 0):
         self.model = model
         self.loader = loader
         self.device = device
         self.stats = stats
         self.enable_checkpointing = enable_checkpointing
         self.checkpoint_frequency = checkpoint_frequency
+        self.max_time_minutes = max_time_minutes  # 0 = no limit
 
     def should_save_checkpoint(self, i : int) -> bool:
         """Condition to device when to save a checkpoint.
@@ -255,9 +258,17 @@ class Trainer(ABC):
 
         """
         progress_bar = tqdm.auto.tqdm(range(len(self.loader)), desc="loss: N/A")
+        start_time = time.perf_counter()
+        max_seconds = self.max_time_minutes * 60 if self.max_time_minutes > 0 else None
 
         self.stats.start_train()
         for i, batch in enumerate(self.loader):
+            if max_seconds is not None:
+                elapsed = time.perf_counter() - start_time
+                if elapsed >= max_seconds:
+                    progress_bar.set_postfix({"msg": f"Stopped at {elapsed/60:.1f} min (limit {self.max_time_minutes} min)"})
+                    break
+
             self.stats.start_step()
             loss, descr = self.step(i, batch, model_kwargs)
             self.stats.stop_step()

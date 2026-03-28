@@ -47,18 +47,18 @@ class SimpleTrainer(base.Trainer):
 
     """
 
-    def __init__(self, 
-                 loader : data.DataLoader, 
-                 model : nn.Module, 
-                 optimizer : optim.Optimizer, 
-                 lr_scheduler : optim.lr_scheduler.LRScheduler, 
-                 device : torch.device, 
-                 stats : stats.TrainerStats,
+    def __init__(self,
+                 loader: data.DataLoader,
+                 model: nn.Module,
+                 optimizer: optim.Optimizer,
+                 lr_scheduler: optim.lr_scheduler.LRScheduler,
+                 device: torch.device,
+                 stats: stats.TrainerStats,
                  conf: Optional[config.Config] = None):
-        super().__init__(model, loader, device, stats)
+        max_time_minutes = getattr(conf, "max_time_minutes", 0) if conf else 0
+        super().__init__(model, loader, device, stats, max_time_minutes=max_time_minutes)
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
-        # TODO remove conf as it is unused.
         self.conf = conf
 
     def checkpoint_dict(self, i: int) -> Dict[str, Any]:

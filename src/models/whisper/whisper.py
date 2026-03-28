@@ -51,7 +51,13 @@ def simple_trainer(conf: config.Config, model: transformers.WhisperForAudioClass
         labels = torch.stack([item["labels"] for item in batch])
         return {"input_features": input_features, "labels": labels}
 
-    loader = data.DataLoader(dataset, batch_size=conf.batch_size, collate_fn=collate_fn)
+    num_workers = getattr(conf, "num_workers", 0)
+    loader = data.DataLoader(
+        dataset,
+        batch_size=conf.batch_size,
+        collate_fn=collate_fn,
+        num_workers=num_workers,
+    )
     model = model.cuda()
     optimizer = init_whisper_optim(conf, model)
     scheduler = transformers.get_scheduler(
@@ -67,7 +73,8 @@ def simple_trainer(conf: config.Config, model: transformers.WhisperForAudioClass
         optimizer=optimizer,
         lr_scheduler=scheduler,
         device=model.device,
-        stats=trainer_stats.init_from_conf(conf=conf, device=model.device, num_train_steps=len(loader))
+        stats=trainer_stats.init_from_conf(conf=conf, device=model.device, num_train_steps=len(loader)),
+        conf=conf,
     ), None
 
 

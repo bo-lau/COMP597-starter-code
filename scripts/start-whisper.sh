@@ -18,7 +18,7 @@ ${SCRIPTS_DIR}/srun.sh \
     --trainer_stats resource_util \
     --trainer_stats_configs.resource_util.output_dir '${COMP597_JOB_STUDENT_STORAGE_DIR}/whisper/stats'
 
-# Copy results to home directory for easy access (with timestamp)
+Copy results to home directory for easy access (with timestamp)
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 RESULTS_DIR="${REPO_DIR}/whisper-results"
 mkdir -p "${RESULTS_DIR}"

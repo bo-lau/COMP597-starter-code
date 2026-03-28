@@ -7,6 +7,7 @@ import pynvml
 import psutil
 import os
 import time
+import csv
 
 logger = logging.getLogger(__name__)
 
@@ -395,7 +396,7 @@ class ResourceUtilStats(base.TrainerStats):
         print(f"max    : {data_pct.max():.2f}%")
     
     def _save_stats(self) -> None:
-        """Save summary statistics to TXT file."""
+        """Save summary statistics to TXT file and per-step data to CSV."""
         # Save summary statistics to TXT file
         txt_file = os.path.join(self.output_dir, 'resource_utilization_summary.txt')
         with open(txt_file, 'w') as f:
@@ -461,6 +462,10 @@ class ResourceUtilStats(base.TrainerStats):
             f.write("=" * 60 + "\n")
         
         logger.info(f"Resource utilization summary saved to {txt_file}")
+
+        # Additionally, save per-step data so you can plot every step.
+        self._save_per_step_csv()
+
     
     def _write_stat_mb(self, f, stat: utils.RunningStat, name: str) -> None:
         """Helper to write statistics in MB to file."""
@@ -513,7 +518,60 @@ class ResourceUtilStats(base.TrainerStats):
         f.write(f"q0.5   : {data_w.quantile(torch.tensor(0.5)):.2f}\n")
         f.write(f"q0.75  : {data_w.quantile(torch.tensor(0.75)):.2f}\n")
         f.write(f"max    : {data_w.max():.2f}\n")
-    
+
+    def _save_per_step_csv(self) -> None:
+        """Save per-step resource utilization time series to CSV."""
+        csv_path = os.path.join(self.output_dir, "resource_util_steps.csv")
+
+        num_steps = len(self.cpu_memory_stats.history)
+        if num_steps == 0:
+            logger.info("No per-step data collected; skipping CSV export.")
+            return
+
+        with open(csv_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                [
+                    "step",
+                    "gpu_util_pct",
+                    "gpu_mem_util_pct",
+                    "gpu_power_w",
+                    "gpu_mem_alloc_mb",
+                    "gpu_mem_reserved_mb",
+                    "cpu_mem_mb",
+                    "disk_read_mb",
+                    "disk_write_mb",
+                ]
+            )
+
+            for i in range(num_steps):
+                # Some stats may not be collected on CPU-only runs
+                gpu_util_raw = self.gpu_util_stats.history[i] if i < len(self.gpu_util_stats.history) else 0.0
+                gpu_mem_util_raw = self.gpu_memory_util_stats.history[i] if i < len(self.gpu_memory_util_stats.history) else 0.0
+                gpu_power_raw = self.gpu_power_stats.history[i] if i < len(self.gpu_power_stats.history) else 0.0
+                gpu_alloc_raw = self.gpu_memory_allocated_stats.history[i] if i < len(self.gpu_memory_allocated_stats.history) else 0.0
+                gpu_reserved_raw = self.gpu_memory_reserved_stats.history[i] if i < len(self.gpu_memory_reserved_stats.history) else 0.0
+
+                cpu_mem_raw = self.cpu_memory_stats.history[i] if i < len(self.cpu_memory_stats.history) else 0.0
+                disk_read_raw = self.disk_read_stats.history[i] if i < len(self.disk_read_stats.history) else 0.0
+                disk_write_raw = self.disk_write_stats.history[i] if i < len(self.disk_write_stats.history) else 0.0
+
+                writer.writerow(
+                    [
+                        i + 1,
+                        gpu_util_raw / 100.0,
+                        gpu_mem_util_raw / 100.0,
+                        gpu_power_raw / 1000.0,
+                        gpu_alloc_raw / (1024 * 1024),
+                        gpu_reserved_raw / (1024 * 1024),
+                        cpu_mem_raw / (1024 * 1024),
+                        disk_read_raw / (1024 * 1024),
+                        disk_write_raw / (1024 * 1024),
+                    ]
+                )
+
+        logger.info(f"Per-step resource utilization saved to {csv_path}")
+
     def log_loss(self, loss: torch.Tensor) -> None:
         """Log loss (optional)."""
         pass

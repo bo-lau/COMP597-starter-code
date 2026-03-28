@@ -1,3 +1,10 @@
+"""
+Disk-backed synthetic Whisper classification data.
+
+Use --data synthetic_whisper. Generates N_SAMPLES, caches features to .pt
+(see data_path). Contrast with synthetic_whisper_milabench (in-memory, Milabench
+pattern): docs/WHISPER_DATA_LOADING.md
+"""
 import os
 import math
 import torch

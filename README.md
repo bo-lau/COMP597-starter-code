@@ -11,6 +11,8 @@ As mentioned above, the provided code is a command line tool. The entry point is
 
 Before digging straight into the code, visit the [documentation](docs/ToC.md). It provides details about the provided code, the required Python environment, how to use Slurm in the context of this project, and how to extend the code provided. 
 
+For **synthetic Whisper**, there are two data-loading modes (disk cache vs Milabench-style in-memory): [docs/WHISPER_DATA_LOADING.md](docs/WHISPER_DATA_LOADING.md) and [scripts/whisper/README.md](scripts/whisper/README.md).
+
 ## Models
 
 | Milabench Benchmark Name | Milabench Source Code | Model Name | Type | Architecture | Size | Documentation | Dataset | Pretrained Weights | Notes |

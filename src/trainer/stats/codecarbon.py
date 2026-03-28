@@ -27,7 +27,14 @@ def construct_trainer_stats(conf : config.Config, **kwargs) -> base.TrainerStats
     else:
         logger.warning("No device provided to codecarbon trainer stats. Using default PyTorch device")
         device = torch.get_default_device() 
-    return CodeCarbonStats(device, conf.trainer_stats_configs.codecarbon.run_num, conf.trainer_stats_configs.codecarbon.project_name, conf.trainer_stats_configs.codecarbon.output_dir)
+    cc = conf.trainer_stats_configs.codecarbon
+    return CodeCarbonStats(
+        device,
+        cc.run_num,
+        cc.project_name,
+        cc.output_dir,
+        measure_power_secs=getattr(cc, "measure_power_secs", 0.5),
+    )
 
 class SimpleFileOutput(BaseOutput): 
     
@@ -149,62 +156,47 @@ class CodeCarbonStats(base.TrainerStats):
 
     """
 
-    def __init__(self, device : torch.device, run_num : int, project_name : str, output_dir : str) -> None: 
-        
-        # Track current iteration number in the training loop
+    def __init__(self, device: torch.device, run_num: int, project_name: str, output_dir: str, measure_power_secs: float = 0.5) -> None:
         self.iteration = 0
-        
-        # CUDA device indicates the current GPU assigned to this process (0, 1, 2, ...)
         self.device = device
-        # tracking the run number to distinguish between different parameter settings
         self.run_num = run_num
         run_number = f"run_{run_num}_"
-        # GPU ranks - wrap in torch.device
         gpu_id = self.device.index
-        # log the losses
         self.losses = []
         self.project_name = project_name
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
-        
-        # Normal-mode tracker to track the entire training loop
-        self.total_training_tracker = OfflineEmissionsTracker(
-            project_name = project_name, 
-            country_iso_code = "CAN",
-            region = "quebec",
-            save_to_file = False, 
-            output_handlers = [SimpleFileOutput(output_file_name = f"{run_number}cc_full_rank_{gpu_id}.csv", output_dir=output_dir)],
-            allow_multiple_runs = True,
-            log_level = "warning",
-            gpu_ids = [gpu_id],
+
+        tracker_kw = dict(
+            project_name=project_name,
+            country_iso_code="CAN",
+            region="quebec",
+            save_to_file=False,
+            log_level="warning",
+            gpu_ids=[gpu_id],
+            measure_power_secs=measure_power_secs,
         )
 
-        # Task-mode tracker to track steps (iterations) within the training loop
-        self.training_step_tracker = OfflineEmissionsTracker(
-            project_name = project_name, 
-            experiment_name = "steps", #experiment_name required by task_out() method
-            country_iso_code = "CAN", 
-            region = "quebec", 
-            save_to_file = False, 
-            output_handlers = [SimpleFileOutput(output_file_name = f"{run_number}cc_step_rank_{gpu_id}.csv", output_dir=output_dir)],
-            allow_multiple_runs = True, 
-            api_call_interval = -1, 
-            gpu_ids = [gpu_id],
-            log_level = "warning",
+        self.total_training_tracker = OfflineEmissionsTracker(
+            **tracker_kw,
+            output_handlers=[SimpleFileOutput(output_file_name=f"{run_number}cc_full_rank_{gpu_id}.csv", output_dir=output_dir)],
+            allow_multiple_runs=True,
         )
-        
-        # Task-mode tracker to track individual substeps (forward pass, backward pass, optimiser step)
+
+        self.training_step_tracker = OfflineEmissionsTracker(
+            **tracker_kw,
+            experiment_name="steps",
+            output_handlers=[SimpleFileOutput(output_file_name=f"{run_number}cc_step_rank_{gpu_id}.csv", output_dir=output_dir)],
+            allow_multiple_runs=True,
+            api_call_interval=-1,
+        )
+
         self.training_substep_tracker = OfflineEmissionsTracker(
-            project_name = project_name, 
-            experiment_name = "substeps", #experiment_name required by task_out() method
-            country_iso_code = "CAN", 
-            region = "quebec", 
-            save_to_file = False, 
-            output_handlers = [SimpleFileOutput(output_file_name = f"{run_number}cc_substep_rank_{gpu_id}.csv", output_dir=output_dir)],
-            allow_multiple_runs = True, 
-            api_call_interval = -1, 
-            gpu_ids = [gpu_id],
-            log_level = "warning",
+            **tracker_kw,
+            experiment_name="substeps",
+            output_handlers=[SimpleFileOutput(output_file_name=f"{run_number}cc_substep_rank_{gpu_id}.csv", output_dir=output_dir)],
+            allow_multiple_runs=True,
+            api_call_interval=-1,
         )
 
         # Initialise task-mode trackers
