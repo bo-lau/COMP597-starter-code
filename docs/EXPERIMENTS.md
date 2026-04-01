@@ -10,6 +10,19 @@ This guide covers the experiment structure for your project report.
 - **Phases**: Forward, Backward, Optimizer (the three components of a step)
 - **Epoch**: One complete pass through the dataset
 
+## CPU utilization in `resource_util_csv` (for your report)
+
+`psutil` uses the **same name** for two different measures:
+
+| API | Meaning |
+|-----|--------|
+| **`psutil.cpu_percent()`** (no `Process`) | **System-wide average** over **all logical cores** on the machine (0–100%). Core count is **hardware** (e.g. 192 on some nodes), not your Slurm `--cpus-per-task`. |
+| **`psutil.Process().cpu_percent()`** | **This process only**, as a **sum** across cores — values **can exceed 100%**. |
+
+This repo’s **`cpu_util` column** uses **`psutil.Process().cpu_percent()`** (the second). Values are **per-process** and **summed across cores** (e.g. **190** ≈ 190% total core usage, not 1.9%). DataLoader worker processes are **not** included in this number. Roughly, `psutil.cpu_percent() * psutil.cpu_count()` ≈ `Process().cpu_percent()` when only your Python process uses the CPU.
+
+Plots label this as **“Process CPU (sum %, all cores)”**. **State in your report** which API you used and how figures are scaled. Use `--cpu-cores N` on overlap plots if you want to divide by **N** for a **per-core average** (0–100) on the same axis as GPU utilization.
+
 ## Data: two Whisper modes (summary)
 
 | Mode | Script (5 min) |
@@ -25,10 +38,13 @@ Details: [WHISPER_DATA_LOADING.md](./WHISPER_DATA_LOADING.md).
 |------|---------|
 | 5-min run, disk data | `./scripts/whisper/synthetic_disk_5min.sh` |
 | 5-min run, Milabench data | `./scripts/whisper/milabench_5min.sh` |
-| Multi-run (3× per batch), **disk** | `./scripts/run_experiments_disk.sh 8 4 2` (or `./scripts/run_experiments.sh` — same) |
-| Multi-run (3× per batch), **Milabench** | `./scripts/run_experiments_milabench.sh 8 4 2` |
-| Aggregate & plot (disk, default dir) | `python scripts/plotting/aggregate_and_plot.py` |
-| Aggregate & plot (Milabench runs) | `python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_milabench` |
+| Multi-run (3× per batch), **disk** | `./scripts/run_experiments_disk.sh` (default batch: `128 64 32`) or `./scripts/run_experiments.sh` |
+| Multi-run (3× per batch), **Milabench** | `./scripts/run_experiments_milabench.sh` (same default batch sizes) |
+| Vary **DataLoader workers** (separate dirs per worker count) | `WORKERS="0 4 8" ./scripts/run_experiments_disk.sh` (same for `_milabench`) |
+| **Full sweep** (disk + Milabench, all batches × workers) | `./scripts/run_all_experiments.sh` (see `--disk-only` / `--milabench-only` / `--dry-run`) |
+| Aggregate & plot | `python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_disk/workers_0` (pick `workers_N`) |
+| Aggregate & plot (Milabench) | `python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_milabench/workers_0` |
+| **Plot all workers + batches** (disk + Milabench) | `./scripts/plotting/plot_all_experiments.sh` |
 | Overhead check | `./scripts/check_overhead.sh` or `./scripts/check_overhead.sh --slurm` |
 | Energy (500ms sampling) | Use `--trainer_stats codecarbon` with `--trainer_stats_configs.codecarbon.measure_power_secs 0.5` |
 
@@ -55,24 +71,25 @@ python scripts/plotting/plot_resources.py
 Find your max batch size (power of 2), then run max, max/2, max/4. Example for max=8:
 
 ```bash
-./scripts/run_experiments_disk.sh 8 4 2
-# Milabench data:
-./scripts/run_experiments_milabench.sh 8 4 2
+./scripts/run_experiments_disk.sh
+# Milabench data (defaults: batch sizes 128 64 32):
+./scripts/run_experiments_milabench.sh
+# Include 8 4 2, e.g.:
+./scripts/run_experiments_disk.sh 128 64 32 8 4 2
 ```
 
-Output: `logs/experiments/batch_*` (disk) or `logs/experiments_milabench/batch_*` (Milabench), each with `run_1/` … `run_3/`.
+Output layout: `logs/experiments_disk/workers_<W>/batch_<B>/run_<R>` and `logs/experiments_milabench/workers_<W>/batch_<B>/run_<R>`. Default `WORKERS="0 4"` (set `WORKERS=0` for a single worker sweep).
 
 ## 4. Three Runs and Averaging
 
 `run_experiments_disk.sh` / `run_experiments_milabench.sh` run each batch size 3 times. Then:
 
 ```bash
-python scripts/plotting/aggregate_and_plot.py
-# Milabench output:
-python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_milabench
+python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_disk/workers_0
+python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_milabench/workers_4
 ```
 
-This averages CSVs across the 3 runs and writes to `batch_N/averaged/`, then plots under `plots/batch_N/` (under the experiments dir you pass).
+This averages CSVs across the 3 runs and writes to `batch_N/averaged/`, then plots under `plots/batch_N/` (under the `--experiments-dir` you pass—one worker folder at a time).
 
 ## 5. Energy Sampling (500ms)
 

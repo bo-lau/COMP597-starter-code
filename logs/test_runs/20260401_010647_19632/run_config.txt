@@ -1,0 +1,6 @@
+timestamp=20260401_010647_19632
+data=synthetic_whisper
+batch_size=8
+num_workers=0
+max_time_minutes=3
+plot_smooth=1

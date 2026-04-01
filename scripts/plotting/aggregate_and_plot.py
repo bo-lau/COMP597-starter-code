@@ -2,13 +2,12 @@
 """
 Aggregate metrics across 3 runs (averaged) and produce final plots.
 
-Reads from logs/experiments/batch_{N}/run_{1,2,3}/ and writes averaged
-resource_util.csv, resource_util_substeps.csv, phase_times.csv to
-logs/experiments/batch_{N}/averaged/, then calls plot_resources.
+Reads from <experiments-dir>/batch_{N}/run_{1,2,3}/ (any N, e.g. batch_128, batch_64, batch_32) and writes averaged
+CSVs to batch_{N}/averaged/, then calls plot_resources.
 
 Usage:
     python scripts/plotting/aggregate_and_plot.py [--experiments-dir PATH]
-    python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments
+    python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_disk/workers_0
 """
 import argparse
 import sys
@@ -29,6 +28,15 @@ from plot_resources import (
     plot_phase_bars,
     plot_phases_boxplot,
 )
+
+
+def _numeric_suffix_key(path: Path) -> tuple:
+    """Sort batch_N / run_N by N (not lexicographic: batch_128 before batch_32)."""
+    try:
+        n = int(path.name.split("_", 1)[1])
+        return (0, n)
+    except (IndexError, ValueError):
+        return (1, path.name)
 
 
 def aggregate_csvs(paths: list) -> Optional[pd.DataFrame]:
@@ -58,8 +66,8 @@ def main() -> None:
     parser.add_argument(
         "--experiments-dir",
         type=Path,
-        default=REPO_ROOT / "logs" / "experiments",
-        help="Base directory with batch_N/run_R/ structure",
+        default=REPO_ROOT / "logs" / "experiments_disk" / "workers_0",
+        help="Base directory with batch_N/run_R/ (e.g. logs/experiments_disk/workers_0)",
     )
     parser.add_argument(
         "--output-dir",
@@ -81,7 +89,7 @@ def main() -> None:
         print("Run ./scripts/run_experiments_disk.sh or ./scripts/run_experiments_milabench.sh first.")
         sys.exit(1)
 
-    batch_dirs = sorted(exp_dir.glob("batch_*"))
+    batch_dirs = sorted(exp_dir.glob("batch_*"), key=_numeric_suffix_key)
     if not batch_dirs:
         print(f"No batch_* dirs in {exp_dir}")
         sys.exit(1)
@@ -90,8 +98,8 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for batch_dir in batch_dirs:
-        batch_name = batch_dir.name  # e.g. batch_8
-        run_dirs = sorted(batch_dir.glob("run_*"))
+        batch_name = batch_dir.name  # e.g. batch_128
+        run_dirs = sorted(batch_dir.glob("run_*"), key=_numeric_suffix_key)
         if len(run_dirs) < 1:
             print(f"Skipping {batch_name}: no runs")
             continue

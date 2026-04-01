@@ -27,7 +27,8 @@ except ImportError:
 
 METRICS_OVERVIEW = [
     ("gpu_util", "GPU Util (%)", "GPU Utilization"),
-    ("cpu_util", "CPU Util (%)", "CPU Utilization"),
+    # cpu_util from resource_util_csv = Process.cpu_percent(): per-process sum over cores (can exceed 100).
+    ("cpu_util", "Process CPU (sum %)", "Process CPU (sum %, all cores)"),
     (("gpu_mem_gb", "gpu_mem_pct"), ("GB", "%"), "GPU Memory"),
     ("cpu_mem_gb", "GB", "CPU Memory"),
     ("ram_gb", "GB", "System RAM"),
@@ -37,7 +38,7 @@ METRICS_OVERVIEW = [
 
 METRICS_BOXPLOT = [
     ("gpu_util", "GPU Util (%)", "GPU Utilization"),
-    ("cpu_util", "CPU Util (%)", "CPU Utilization"),
+    ("cpu_util", "Process CPU (sum %)", "Process CPU (sum %, all cores)"),
     (("gpu_mem_pct", "gpu_mem_gb"), ("%", "GB"), "GPU Memory"),
     ("cpu_mem_gb", "GB", "CPU Memory"),
 ]
@@ -128,12 +129,17 @@ def plot_gpu_cpu_overlap(
             cpu_util = cpu_util / cpu_cores
         cpu_smooth = _smooth_series(cpu_util, smooth)
         ax.plot(df_plot[x_col], gpu_smooth, linewidth=1.5, color="#2980b9", label="GPU Util (%)")
+        cpu_label = (
+            "Process CPU (sum %, all cores)"
+            if cpu_cores is None or cpu_cores <= 0
+            else f"Process CPU ÷ {cpu_cores} (avg per core, 0–100)"
+        )
         ax.plot(
             df_plot[x_col],
             cpu_smooth,
             linewidth=1.5,
             color="#e74c3c",
-            label="CPU Util (%)" + (f" (norm/{cpu_cores})" if cpu_cores else ""),
+            label=cpu_label,
         )
         ax.set_ylabel("Utilization (%)", fontsize=9)
         ax.set_title(title, fontsize=10, fontweight="medium")
@@ -286,14 +292,15 @@ def main() -> None:
     parser.add_argument(
         "--cpu-cores",
         type=int,
-        default=4,
+        default=0,
         metavar="N",
-        help="Normalize CPU util by N cores for GPU/CPU overlap (0-100%% scale). Default: 4",
+        help="If N>0, divide cpu_util by N in the overlap plot (per-core average 0–100, easier vs GPU). "
+        "resource_util_csv uses Process.cpu_percent() (per-process sum; can exceed 100); default 0 = raw sum.",
     )
     parser.add_argument(
         "--no-normalize-cpu",
         action="store_true",
-        help="Disable CPU normalization in overlap plot (show raw %% per core)",
+        help="Same as --cpu-cores 0 (explicit no division).",
     )
     parser.add_argument(
         "--smooth", "-s",
@@ -324,7 +331,7 @@ def main() -> None:
     output_dir = args.output_dir or Path(__file__).resolve().parent
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    cpu_cores = None if args.no_normalize_cpu else args.cpu_cores
+    cpu_cores = None if args.no_normalize_cpu else (args.cpu_cores if args.cpu_cores > 0 else None)
 
     plot_overview(df, output_dir / "resource_util.png", smooth=args.smooth)
     plot_gpu_cpu_overlap(df, output_dir / "resource_util_gpu_cpu.png", cpu_cores=cpu_cores, smooth=args.smooth)

@@ -5,6 +5,7 @@ import src.trainer.stats as trainer_stats
 
 # === import necessary external modules ===
 from typing import Dict, Optional, Tuple
+import multiprocessing
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
@@ -45,18 +46,23 @@ def pre_init_whisper(conf: config.Config, dataset: data.Dataset) -> Tuple[transf
     return model, dataset, processor
 
 
-def simple_trainer(conf: config.Config, model: transformers.WhisperForAudioClassification, dataset: data.Dataset, processor: transformers.WhisperProcessor) -> Tuple[trainer.Trainer, Optional[Dict]]:
-    def collate_fn(batch):
-        input_features = torch.stack([item["input_features"] for item in batch])
-        labels = torch.stack([item["labels"] for item in batch])
-        return {"input_features": input_features, "labels": labels}
+def whisper_collate_fn(batch):
+    """Module-level collate so DataLoader can pickle it when num_workers > 0."""
+    input_features = torch.stack([item["input_features"] for item in batch])
+    labels = torch.stack([item["labels"] for item in batch])
+    return {"input_features": input_features, "labels": labels}
 
+
+def simple_trainer(conf: config.Config, model: transformers.WhisperForAudioClassification, dataset: data.Dataset, processor: transformers.WhisperProcessor) -> Tuple[trainer.Trainer, Optional[Dict]]:
     num_workers = getattr(conf, "num_workers", 0)
+    # Default "forkserver" can hit ValueError('too many fds') on some Slurm nodes; spawn avoids forkserver.
+    mp_ctx = multiprocessing.get_context("spawn") if num_workers > 0 else None
     loader = data.DataLoader(
         dataset,
         batch_size=conf.batch_size,
-        collate_fn=collate_fn,
+        collate_fn=whisper_collate_fn,
         num_workers=num_workers,
+        multiprocessing_context=mp_ctx,
     )
     model = model.cuda()
     optimizer = init_whisper_optim(conf, model)

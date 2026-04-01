@@ -1,5 +1,25 @@
 # Plotting scripts (same as sham-bolic/COMP597-starter-code)
 
+## plot_all_experiments.sh
+
+Runs `aggregate_and_plot.py` for **every** `logs/experiments_disk/workers_*` and `logs/experiments_milabench/workers_*` directory. Any `batch_*` name works (`batch_128`, `batch_64`, `batch_32`, etc.); batches are processed in **numeric** order (not string order).
+
+```bash
+./scripts/plotting/plot_all_experiments.sh
+./scripts/plotting/plot_all_experiments.sh --disk-only
+SMOOTH=3 ./scripts/plotting/plot_all_experiments.sh
+```
+
+## plot_resource_util_steps.py
+
+For **`--trainer_stats resource_util`** (writes **`resource_util_steps.csv`**, not `resource_util.csv`). Maps columns and draws the same **overview** and **GPU/CPU overlay** as `plot_resources.py` (no phase/substep figures).
+
+```bash
+python scripts/plotting/plot_resource_util_steps.py \
+  --input logs/whisper_resource_util_milabench/resource_util_steps.csv \
+  --output-dir logs/whisper_resource_util_milabench/plots
+```
+
 ## plot_resources.py
 
 Produces the same three plots as the [sham-bolic](https://github.com/sham-bolic/COMP597-starter-code) repo:

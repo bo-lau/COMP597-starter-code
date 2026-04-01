@@ -57,6 +57,11 @@ class ResourceUtilCSVStats(simple.SimpleTrainerStats):
             gpu_index = device.index if getattr(device, "index", None) is not None else 0
             self.gpu_handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_index)
         self.process = psutil.Process()
+        # CPU utilization (see course announcement on psutil):
+        #   - psutil.cpu_percent() = system-wide average over all cores (0–100%).
+        #   - psutil.Process().cpu_percent() = this process only, sum across cores (can exceed 100%).
+        # We use Process (Option 2): reflects training process CPU; DataLoader workers are separate
+        # processes and are not included. State this in your report.
 
         self.gpu_util_stats = _RunningFloat()
         self.gpu_mem_gb_stats = _RunningFloat()
@@ -73,9 +78,18 @@ class ResourceUtilCSVStats(simple.SimpleTrainerStats):
         self.io_write_start = io.write_bytes
         self._rows = []
         self._substep_rows = []
+        # Prime CPU % so the first training step is not stuck at 0 (psutil baseline).
+        self.process.cpu_percent(interval=None)
+        logger.info(
+            "cpu_util column = Process.cpu_percent() (per-process sum over cores; can exceed 100%). "
+            "Not psutil.cpu_percent() (system-wide average)."
+        )
         output_dir = os.path.dirname(self.csv_path)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
+
+    def _sample_cpu_util(self) -> float:
+        return float(self.process.cpu_percent(interval=None))
 
     def _record_substep(self, phase: str) -> None:
         """Record resource stats at end of a phase (forward/backward/optimizer)."""
@@ -87,7 +101,7 @@ class ResourceUtilCSVStats(simple.SimpleTrainerStats):
         mem_info = pynvml.nvmlDeviceGetMemoryInfo(self.gpu_handle)
         gpu_util = float(util.gpu)
         gpu_mem_gb = mem_info.used / 1e9
-        cpu_util = self.process.cpu_percent()
+        cpu_util = self._sample_cpu_util()
         cpu_mem_gb = self.process.memory_info().rss / 1e9
         ram_gb = psutil.virtual_memory().used / 1e9
         io = self.process.io_counters()
@@ -119,7 +133,7 @@ class ResourceUtilCSVStats(simple.SimpleTrainerStats):
         else:
             self.gpu_util_stats.update(0.0)
             self.gpu_mem_gb_stats.update(0.0)
-        self.cpu_util_stats.update(self.process.cpu_percent())
+        self.cpu_util_stats.update(self._sample_cpu_util())
         self.cpu_mem_gb_stats.update(self.process.memory_info().rss / 1e9)
         self.ram_gb_stats.update(psutil.virtual_memory().used / 1e9)
 
@@ -168,6 +182,7 @@ class ResourceUtilCSVStats(simple.SimpleTrainerStats):
     def log_stats(self) -> None:
         with open(self.csv_path, "w", newline="") as f:
             writer = csv.writer(f)
+            # cpu_util: Process.cpu_percent() — per-process sum % (all cores used by this process).
             writer.writerow([
                 "step", "gpu_util", "cpu_util", "gpu_mem_gb", "cpu_mem_gb", "ram_gb",
                 "io_read_gb", "io_write_gb",

@@ -2,8 +2,7 @@
 # Whisper + Milabench-style in-memory data (synthetic_whisper_milabench): 5 min + plots.
 # See docs/WHISPER_DATA_LOADING.md and scripts/whisper/README.md
 #
-# Custom n/repeat:
-#   --data_configs.synthetic_whisper_milabench.n 200 \
+# Custom repeat (n = --batch_size):
 #   --data_configs.synthetic_whisper_milabench.repeat 50
 
 WHISPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,7 +25,6 @@ mkdir -p "${PLOTS_DIR}"
     --max_time_minutes 5 \
     --trainer_stats resource_util_csv \
     --trainer_stats_configs.resource_util_csv.output_dir "${OUT_DIR}" \
-    --data_configs.synthetic_whisper_milabench.n 500 \
     --data_configs.synthetic_whisper_milabench.repeat 200
 
 echo ""

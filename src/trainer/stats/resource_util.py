@@ -50,6 +50,7 @@ class ResourceUtilStats(base.TrainerStats):
     This class measures:
     - GPU utilization (%)
     - GPU memory usage (MB)
+    - CPU utilization (%), this process only (``psutil.Process().cpu_percent()``; sum across cores, can exceed 100)
     - CPU memory usage (MB)
     - Disk I/O (read/write bytes)
     
@@ -69,6 +70,8 @@ class ResourceUtilStats(base.TrainerStats):
         Statistics for GPU utilization percentage.
     gpu_memory_stats : RunningStat
         Statistics for GPU memory usage in bytes.
+    cpu_util_stats : RunningStat
+        Statistics for CPU utilization (stored as ``int(round(percent * 100))``, same scale as GPU util stats).
     cpu_memory_stats : RunningStat
         Statistics for CPU memory usage in bytes.
     disk_read_stats : RunningStat
@@ -100,6 +103,7 @@ class ResourceUtilStats(base.TrainerStats):
         self.gpu_power_stats = utils.RunningStat()  # GPU power consumption (mW)
         self.gpu_memory_allocated_stats = utils.RunningStat()  # Memory allocated by PyTorch (actual tensor memory)
         self.gpu_memory_reserved_stats = utils.RunningStat()  # Memory reserved by PyTorch (allocator cache)
+        self.cpu_util_stats = utils.RunningStat()  # Process CPU % (psutil); stored as int(percent * 100)
         self.cpu_memory_stats = utils.RunningStat()
         self.disk_read_stats = utils.RunningStat()
         self.disk_write_stats = utils.RunningStat()
@@ -233,6 +237,7 @@ class ResourceUtilStats(base.TrainerStats):
         """Called when training starts."""
         if self.device.type == 'cuda':
             torch.cuda.synchronize(self.device)
+        self.process.cpu_percent(interval=None)
         logger.info("Resource utilization tracking started")
     
     def stop_train(self) -> None:
@@ -314,6 +319,13 @@ class ResourceUtilStats(base.TrainerStats):
             gpu_mem_reserved = self._get_gpu_memory_reserved()
             self.gpu_memory_reserved_stats.update(gpu_mem_reserved)
         
+        try:
+            cpu_util = float(self.process.cpu_percent(interval=None))
+        except Exception as e:
+            logger.debug(f"Failed to get CPU utilization: {e}")
+            cpu_util = 0.0
+        self.cpu_util_stats.update(int(round(cpu_util * 100)))
+
         # CPU memory (bytes)
         cpu_mem = self._get_cpu_memory()
         self.cpu_memory_stats.update(cpu_mem)
@@ -335,11 +347,18 @@ class ResourceUtilStats(base.TrainerStats):
             gpu_mem_reserved_mb = self.gpu_memory_reserved_stats.get_last() / (1024 * 1024) if self.gpu_memory_reserved_stats.get_last() >= 0 else 0.0
             output_parts.append(f"GPU Util: {gpu_util:.1f}% | GPU Mem Util: {gpu_mem_util:.1f}% | GPU Power: {gpu_power_w:.1f}W | GPU Mem Alloc: {gpu_mem_allocated_mb:.1f} MB | GPU Mem Reserved: {gpu_mem_reserved_mb:.1f} MB")
         
+        cpu_util_pct = (
+            self.cpu_util_stats.get_last() / 100.0
+            if len(self.cpu_util_stats.history) > 0 and self.cpu_util_stats.get_last() >= 0
+            else 0.0
+        )
         cpu_mem_mb = self.cpu_memory_stats.get_last() / (1024 * 1024) if self.cpu_memory_stats.get_last() >= 0 else 0.0
         disk_read_mb = self.disk_read_stats.get_last() / (1024 * 1024) if self.disk_read_stats.get_last() >= 0 else 0.0
         disk_write_mb = self.disk_write_stats.get_last() / (1024 * 1024) if self.disk_write_stats.get_last() >= 0 else 0.0
-        
-        output_parts.append(f"CPU Mem: {cpu_mem_mb:.1f} MB | Disk R: {disk_read_mb:.1f} MB | Disk W: {disk_write_mb:.1f} MB")
+
+        output_parts.append(
+            f"CPU Util: {cpu_util_pct:.1f}% | CPU Mem: {cpu_mem_mb:.1f} MB | Disk R: {disk_read_mb:.1f} MB | Disk W: {disk_write_mb:.1f} MB"
+        )
         print(" | ".join(output_parts))
     
     def log_stats(self) -> None:
@@ -359,7 +378,11 @@ class ResourceUtilStats(base.TrainerStats):
             
             print("###############   GPU MEMORY RESERVED (MB)    ###############")
             self._log_stat_mb(self.gpu_memory_reserved_stats, "GPU Memory Reserved")
-        
+
+        if len(self.cpu_util_stats.history) > 0:
+            print("###############   CPU UTILIZATION (process %)    ###############")
+            self._log_stat_percentage(self.cpu_util_stats, "CPU Utilization (%)")
+
         print("###############   CPU MEMORY (MB)    ###############")
         self._log_stat_mb(self.cpu_memory_stats, "CPU Memory")
         
@@ -424,7 +447,12 @@ class ResourceUtilStats(base.TrainerStats):
                 f.write("###############   GPU MEMORY RESERVED (MB)    ###############\n")
                 self._write_stat_mb(f, self.gpu_memory_reserved_stats, "GPU Memory Reserved")
                 f.write("\n")
-            
+
+            if len(self.cpu_util_stats.history) > 0:
+                f.write("###############   CPU UTILIZATION (process %)    ###############\n")
+                self._write_stat_percentage(f, self.cpu_util_stats, "CPU Utilization (%)")
+                f.write("\n")
+
             f.write("###############   CPU MEMORY (MB)    ###############\n")
             self._write_stat_mb(f, self.cpu_memory_stats, "CPU Memory")
             f.write("\n")
@@ -451,6 +479,10 @@ class ResourceUtilStats(base.TrainerStats):
                 if len(self.gpu_power_stats.history) > 0:
                     avg_power = torch.tensor(self.gpu_power_stats.history).float().mean() / 1000.0
                     f.write(f"  Average GPU Power Consumption: {avg_power:.2f} W\n")
+            if len(self.cpu_util_stats.history) > 0:
+                avg_cpu_u = torch.tensor(self.cpu_util_stats.history).float().mean() / 100.0
+                f.write(f"  Average CPU Utilization (process): {avg_cpu_u:.2f}%\n")
+            if self.device.type == 'cuda' and self.gpu_available:
                 f.write(f"\nGPU Memory Summary:\n")
                 if len(self.gpu_memory_allocated_stats.history) > 0 and len(self.gpu_memory_reserved_stats.history) > 0:
                     avg_allocated = torch.tensor(self.gpu_memory_allocated_stats.history).float().mean() / (1024 * 1024)
@@ -538,6 +570,7 @@ class ResourceUtilStats(base.TrainerStats):
                     "gpu_power_w",
                     "gpu_mem_alloc_mb",
                     "gpu_mem_reserved_mb",
+                    "cpu_util_pct",
                     "cpu_mem_mb",
                     "disk_read_mb",
                     "disk_write_mb",
@@ -552,6 +585,7 @@ class ResourceUtilStats(base.TrainerStats):
                 gpu_alloc_raw = self.gpu_memory_allocated_stats.history[i] if i < len(self.gpu_memory_allocated_stats.history) else 0.0
                 gpu_reserved_raw = self.gpu_memory_reserved_stats.history[i] if i < len(self.gpu_memory_reserved_stats.history) else 0.0
 
+                cpu_util_raw = self.cpu_util_stats.history[i] if i < len(self.cpu_util_stats.history) else 0.0
                 cpu_mem_raw = self.cpu_memory_stats.history[i] if i < len(self.cpu_memory_stats.history) else 0.0
                 disk_read_raw = self.disk_read_stats.history[i] if i < len(self.disk_read_stats.history) else 0.0
                 disk_write_raw = self.disk_write_stats.history[i] if i < len(self.disk_write_stats.history) else 0.0
@@ -564,6 +598,7 @@ class ResourceUtilStats(base.TrainerStats):
                         gpu_power_raw / 1000.0,
                         gpu_alloc_raw / (1024 * 1024),
                         gpu_reserved_raw / (1024 * 1024),
+                        cpu_util_raw / 100.0,
                         cpu_mem_raw / (1024 * 1024),
                         disk_read_raw / (1024 * 1024),
                         disk_write_raw / (1024 * 1024),
