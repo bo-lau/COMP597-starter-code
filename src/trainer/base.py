@@ -257,7 +257,10 @@ class Trainer(ABC):
             `Trainer` and overrides the `train` method.
 
         """
-        progress_bar = tqdm.auto.tqdm(range(len(self.loader)), desc="loss: N/A")
+        _suppress_pb = getattr(self.stats, "SUPPRESS_PROGRESS_BAR", False)
+        progress_bar = tqdm.auto.tqdm(
+            range(len(self.loader)), desc="loss: N/A", disable=_suppress_pb
+        )
         start_time = time.perf_counter()
         max_seconds = self.max_time_minutes * 60 if self.max_time_minutes > 0 else None
 

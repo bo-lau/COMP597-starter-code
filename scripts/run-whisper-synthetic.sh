@@ -11,7 +11,7 @@ python3 launch.py \
     --model whisper \
     --trainer simple \
     --data synthetic_whisper \
-    --batch_size 4 \
+    --batch_size 32 \
     --learning_rate 1e-6 \
     --trainer_stats noop \
     "$@"

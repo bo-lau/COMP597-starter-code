@@ -12,7 +12,7 @@ ${SCRIPTS_DIR}/sbatch.sh \
     --logging.level INFO \
     --model whisper \
     --trainer simple \
-    --batch_size 4 \
+    --batch_size 32 \
     --learning_rate 1e-6 \
     --trainer_stats resource_util \
     --trainer_stats_configs.resource_util.output_dir '${COMP597_JOB_STUDENT_STORAGE_DIR}/whisper/stats'

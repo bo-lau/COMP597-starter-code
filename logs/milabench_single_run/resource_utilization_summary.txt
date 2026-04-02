@@ -1,0 +1,82 @@
+============================================================
+RESOURCE UTILIZATION SUMMARY STATISTICS
+============================================================
+
+###############   GPU COMPUTE UTILIZATION   ###############
+mean   : 99.12%
+q0.25  : 100.00%
+q0.5   : 100.00%
+q0.75  : 100.00%
+max    : 100.00%
+
+###############   GPU MEMORY UTILIZATION   ###############
+mean   : 37.66%
+q0.25  : 36.00%
+q0.5   : 39.00%
+q0.75  : 40.00%
+max    : 42.00%
+
+###############   GPU POWER CONSUMPTION (W)    ###############
+mean   : 216.31
+q0.25  : 217.03
+q0.5   : 217.92
+q0.75  : 218.66
+max    : 220.61
+
+###############   GPU MEMORY ALLOCATED (MB)    ###############
+mean   : 138.47
+q0.25  : 139.32
+q0.5   : 139.32
+q0.75  : 139.32
+max    : 139.94
+
+###############   GPU MEMORY RESERVED (MB)    ###############
+mean   : 21856.16
+q0.25  : 22032.00
+q0.5   : 22032.00
+q0.75  : 22032.00
+max    : 22032.00
+
+###############   CPU UTILIZATION (process %)    ###############
+mean   : 109.37%
+q0.25  : 107.10%
+q0.5   : 107.50%
+q0.75  : 108.10%
+max    : 334.50%
+
+###############   CPU MEMORY (MB)    ###############
+mean   : 1538.30
+q0.25  : 1539.75
+q0.5   : 1541.04
+q0.75  : 1542.31
+max    : 1543.68
+
+###############   DISK READ (MB)     ###############
+mean   : 0.00
+q0.25  : 0.00
+q0.5   : 0.00
+q0.75  : 0.00
+max    : 0.00
+
+###############   DISK WRITE (MB)    ###############
+mean   : 0.00
+q0.25  : 0.00
+q0.5   : 0.00
+q0.75  : 0.00
+max    : 0.00
+
+============================================================
+Total training steps: 125
+GPU Usage Summary:
+  Average GPU Compute Utilization: 99.12%
+  Average GPU Memory Utilization: 37.66%
+  Average GPU Power Consumption: 216.31 W
+  Average CPU Utilization (process): 109.37%
+
+GPU Memory Summary:
+  Average Allocated: 138.47 MB
+  Average Reserved: 21856.16 MB
+  Memory Efficiency: 0.6%
+
+Output directory: logs/milabench_single_run
+============================================================

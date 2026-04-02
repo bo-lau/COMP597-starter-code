@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-Aggregate metrics across 3 runs (averaged) and produce final plots.
+Aggregate experiment runs and produce plots under experiments-dir/plots/.
 
-Reads from <experiments-dir>/batch_{N}/run_{1,2,3}/ (any N, e.g. batch_128, batch_64, batch_32) and writes averaged
-CSVs to batch_{N}/averaged/, then calls plot_resources.
+Reads <experiments-dir>/batch_*/run_*/ (resource_util.csv or resource_util_steps.csv).
+
+- ``--runs latest`` (default): use only the run whose main CSV is **most recently
+  modified** per batch (typical when you keep NRUNS=1 or want the last sweep only).
+- ``--runs all``: average every run_* under each batch (legacy multi-run workflow).
+
+Writes combined CSVs to batch_*/averaged/ and plots to plots/batch_*/.
 
 Usage:
     python scripts/plotting/aggregate_and_plot.py [--experiments-dir PATH]
-    python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_disk/workers_0
+    python scripts/plotting/aggregate_and_plot.py --experiments-dir logs/experiments_disk/workers_0 --runs all
 """
 import argparse
 import sys
@@ -23,6 +28,7 @@ REPO_ROOT = PLOTTING_DIR.parent.parent
 sys.path.insert(0, str(PLOTTING_DIR))
 
 from plot_resources import (
+    load_resource_plot_df,
     plot_gpu_cpu_overlap,
     plot_overview,
     plot_phase_bars,
@@ -39,12 +45,33 @@ def _numeric_suffix_key(path: Path) -> tuple:
         return (1, path.name)
 
 
+def _run_dir_resource_mtime(run_dir: Path) -> float:
+    """Latest mtime of the main resource CSV in a run dir (prefers actual data file)."""
+    best = 0.0
+    for name in ("resource_util.csv", "resource_util_steps.csv"):
+        p = run_dir / name
+        if p.is_file():
+            best = max(best, p.stat().st_mtime)
+    if best > 0.0:
+        return best
+    return run_dir.stat().st_mtime
+
+
+def select_run_dirs(run_dirs: list[Path], mode: str) -> list[Path]:
+    """``all`` keeps every run; ``latest`` keeps a single run (most recent CSV mtime)."""
+    if not run_dirs:
+        return []
+    if mode == "all":
+        return run_dirs
+    return [max(run_dirs, key=_run_dir_resource_mtime)]
+
+
 def aggregate_csvs(paths: list) -> Optional[pd.DataFrame]:
-    """Load CSVs, align by step, average across runs. Returns None if empty."""
+    """Load CSVs (sham-bolic or ``resource_util_steps`` format), align by step, average across runs."""
     dfs = []
     for p in paths:
         if p.exists():
-            dfs.append(pd.read_csv(p))
+            dfs.append(load_resource_plot_df(p))
     if not dfs:
         return None
     # Align by step (min length)
@@ -66,8 +93,8 @@ def main() -> None:
     parser.add_argument(
         "--experiments-dir",
         type=Path,
-        default=REPO_ROOT / "logs" / "experiments_disk" / "workers_0",
-        help="Base directory with batch_N/run_R/ (e.g. logs/experiments_disk/workers_0)",
+        default=REPO_ROOT / "logs" / "experiments_disk" / "resource_util" / "workers_0",
+        help="Base directory with batch_N/run_R/ (e.g. logs/experiments_disk/resource_util/workers_0; legacy: .../workers_0)",
     )
     parser.add_argument(
         "--output-dir",
@@ -80,6 +107,13 @@ def main() -> None:
         type=int,
         default=1,
         help="Rolling window for timeline smoothing",
+    )
+    parser.add_argument(
+        "--runs",
+        choices=("latest", "all"),
+        default="latest",
+        help="latest: only the most recently written run per batch (default). "
+        "all: mean across every run_* folder (old multi-run sweeps).",
     )
     args = parser.parse_args()
 
@@ -99,22 +133,38 @@ def main() -> None:
 
     for batch_dir in batch_dirs:
         batch_name = batch_dir.name  # e.g. batch_128
-        run_dirs = sorted(batch_dir.glob("run_*"), key=_numeric_suffix_key)
-        if len(run_dirs) < 1:
+        run_dirs_all = sorted(batch_dir.glob("run_*"), key=_numeric_suffix_key)
+        if len(run_dirs_all) < 1:
             print(f"Skipping {batch_name}: no runs")
             continue
+
+        run_dirs = select_run_dirs(run_dirs_all, args.runs)
+        run_label = (
+            f"{len(run_dirs_all)} runs (mean)"
+            if args.runs == "all" and len(run_dirs_all) > 1
+            else (
+                f"latest of {len(run_dirs_all)} ({run_dirs[0].name})"
+                if len(run_dirs_all) > 1
+                else run_dirs[0].name
+            )
+        )
 
         avg_dir = batch_dir / "averaged"
         avg_dir.mkdir(exist_ok=True)
         df_sub_avg = None
 
-        # Aggregate resource_util.csv
-        main_csvs = [d / "resource_util.csv" for d in run_dirs]
+        # Aggregate per-step resource CSV (sham-bolic ``resource_util.csv`` or ``resource_util_steps.csv``)
+        main_csvs = []
+        for d in run_dirs:
+            if (d / "resource_util.csv").exists():
+                main_csvs.append(d / "resource_util.csv")
+            elif (d / "resource_util_steps.csv").exists():
+                main_csvs.append(d / "resource_util_steps.csv")
         df_main = aggregate_csvs(main_csvs)
         if df_main is not None:
             out_csv = avg_dir / "resource_util.csv"
             df_main[[c for c in df_main.columns if not c.endswith("_std")]].to_csv(out_csv, index=False)
-            print(f"  {batch_name}: aggregated {len(run_dirs)} runs -> {out_csv}")
+            print(f"  {batch_name}: {run_label} -> {out_csv}")
 
         # Aggregate substeps (phase data)
         sub_csvs = [d / "resource_util_substeps.csv" for d in run_dirs]
@@ -132,18 +182,21 @@ def main() -> None:
             phase_out = avg_dir / "phase_times.csv"
             df_phase[[c for c in df_phase.columns if not c.endswith("_std")]].to_csv(phase_out, index=False)
 
-        # Plot for this batch
+        # Plot for this batch (resource timelines and/or phase bars)
+        batch_out = out_dir / batch_name
+        batch_out.mkdir(parents=True, exist_ok=True)
+        phase_path = avg_dir / "phase_times.csv"
+        wrote_any = False
         if df_main is not None:
-            batch_out = out_dir / batch_name
-            batch_out.mkdir(exist_ok=True)
-            avg_dir = batch_dir / "averaged"
             plot_overview(df_main, batch_out / "resource_util.png", smooth=args.smooth)
             plot_gpu_cpu_overlap(df_main, batch_out / "resource_util_gpu_cpu.png", smooth=args.smooth)
             if df_sub_avg is not None and "phase" in df_sub_avg.columns:
                 plot_phases_boxplot(df_sub_avg, batch_out / "resource_util_phases.png")
-            phase_path = avg_dir / "phase_times.csv"
-            if phase_path.exists():
-                plot_phase_bars(phase_path, batch_out / "phase_time_bars.png")
+            wrote_any = True
+        if phase_path.exists():
+            plot_phase_bars(phase_path, batch_out / "phase_time_bars.png")
+            wrote_any = True
+        if wrote_any:
             print(f"  Plots -> {batch_out}")
 
     print(f"\nDone. Plots in {out_dir}")

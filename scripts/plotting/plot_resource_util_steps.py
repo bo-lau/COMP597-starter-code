@@ -2,8 +2,7 @@
 """
 Plot outputs from ``--trainer_stats resource_util`` (``resource_util_steps.csv``).
 
-That CSV uses different column names than ``resource_util_csv``'s ``resource_util.csv``.
-This script maps them and reuses ``plot_resources.plot_overview`` and
+Maps columns and reuses ``plot_resources.plot_overview`` and
 ``plot_gpu_cpu_overlap`` (same figures as the CSV pipeline, minus phase/substep plots).
 
 Usage:

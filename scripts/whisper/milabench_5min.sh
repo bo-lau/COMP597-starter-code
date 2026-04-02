@@ -19,18 +19,18 @@ mkdir -p "${PLOTS_DIR}"
     --model whisper \
     --trainer simple \
     --data synthetic_whisper_milabench \
-    --batch_size 4 \
+    --batch_size 32 \
     --num_workers 0 \
     --learning_rate 1e-6 \
     --max_time_minutes 5 \
-    --trainer_stats resource_util_csv \
-    --trainer_stats_configs.resource_util_csv.output_dir "${OUT_DIR}" \
+    --trainer_stats resource_util \
+    --trainer_stats_configs.resource_util.output_dir "${OUT_DIR}" \
     --data_configs.synthetic_whisper_milabench.repeat 200
 
 echo ""
 echo "Generating plots..."
 python3 "${SCRIPTS_DIR}/plotting/plot_resources.py" \
-    --input "${OUT_DIR}/resource_util.csv" \
+    --input "${OUT_DIR}/resource_util_steps.csv" \
     --output-dir "${PLOTS_DIR}" \
     --smooth 1
 echo "Plots saved to ${PLOTS_DIR}"

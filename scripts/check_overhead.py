@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Check that metrics collection adds < 5% overhead.
-Runs baseline (noop) and resource_util_csv for --max-time minutes each, compares.
+Runs baseline (noop) and resource_util for --max-time minutes each, compares.
 """
 import argparse
 import subprocess
@@ -24,8 +24,8 @@ def run_training(trainer_stats: str, output_dir: Path, max_min: float, batch: in
         "--max_time_minutes", str(max_min),
         "--trainer_stats", trainer_stats,
     ]
-    if trainer_stats == "resource_util_csv":
-        cmd.extend(["--trainer_stats_configs.resource_util_csv.output_dir", str(output_dir)])
+    if trainer_stats == "resource_util":
+        cmd.extend(["--trainer_stats_configs.resource_util.output_dir", str(output_dir)])
     start = time.perf_counter()
     subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
     return time.perf_counter() - start
@@ -34,7 +34,7 @@ def run_training(trainer_stats: str, output_dir: Path, max_min: float, batch: in
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--max-time", type=float, default=5, help="Minutes per run")
-    parser.add_argument("--batch", type=int, default=8)
+    parser.add_argument("--batch", type=int, default=32)
     parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "logs" / "overhead_check")
     args = parser.parse_args()
 
@@ -47,8 +47,8 @@ def main():
 
     metrics_dir = args.out_dir / "with_metrics"
     metrics_dir.mkdir(exist_ok=True)
-    print("[2/2] With resource_util_csv...")
-    t_metrics = run_training("resource_util_csv", metrics_dir, args.max_time, args.batch)
+    print("[2/2] With resource_util...")
+    t_metrics = run_training("resource_util", metrics_dir, args.max_time, args.batch)
     print(f"  Time: {t_metrics:.1f} s\n")
 
     overhead = (t_metrics - t_baseline) / t_baseline * 100 if t_baseline > 0 else 0

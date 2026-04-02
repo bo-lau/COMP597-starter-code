@@ -27,7 +27,7 @@ MAX_TIME_MINUTES="${MAX_TIME_MINUTES:-3}"
 mkdir -p "${OUT_DIR}"
 
 # --- random discrete config (edit arrays to taste) ---
-BATCHES=(4 8 16 32 64 128)
+BATCHES=(32 64 128)
 BATCH="${BATCHES[$((RANDOM % ${#BATCHES[@]}))]}"
 
 declare -a WORKERS_OPTS=(0 2 4)
@@ -71,10 +71,8 @@ BASE_ARGS=(
   --num_workers "${NW}"
   --learning_rate 1e-6
   --max_time_minutes "${MAX_TIME_MINUTES}"
-  --trainer_stats resource_util_csv
-  --trainer_stats_configs.resource_util_csv.output_dir "${OUT_DIR}"
-  --trainer_stats_configs.resource_util_csv.output_file resource_util.csv
-  --trainer_stats_configs.resource_util_csv.substep_output_file resource_util_substeps.csv
+  --trainer_stats resource_util
+  --trainer_stats_configs.resource_util.output_dir "${OUT_DIR}"
 )
 
 if [[ "${USE_LOCAL:-0}" == "1" ]]; then
@@ -86,7 +84,7 @@ fi
 echo ""
 echo "=== Plotting ==="
 python3 "${SCRIPTS_DIR}/plotting/plot_resources.py" \
-  --input "${OUT_DIR}/resource_util.csv" \
+  --input "${OUT_DIR}/resource_util_steps.csv" \
   --output-dir "${OUT_DIR}/plots" \
   --smooth "${SMOOTH}"
 

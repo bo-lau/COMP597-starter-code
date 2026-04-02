@@ -1,0 +1,82 @@
+============================================================
+RESOURCE UTILIZATION SUMMARY STATISTICS
+============================================================
+
+###############   GPU COMPUTE UTILIZATION   ###############
+mean   : 99.58%
+q0.25  : 100.00%
+q0.5   : 100.00%
+q0.75  : 100.00%
+max    : 100.00%
+
+###############   GPU MEMORY UTILIZATION   ###############
+mean   : 36.19%
+q0.25  : 35.00%
+q0.5   : 36.00%
+q0.75  : 37.00%
+max    : 40.00%
+
+###############   GPU POWER CONSUMPTION (W)    ###############
+mean   : 219.05
+q0.25  : 218.93
+q0.5   : 219.78
+q0.75  : 220.77
+max    : 222.16
+
+###############   GPU MEMORY ALLOCATED (MB)    ###############
+mean   : 139.92
+q0.25  : 140.35
+q0.5   : 140.35
+q0.75  : 140.35
+max    : 140.35
+
+###############   GPU MEMORY RESERVED (MB)    ###############
+mean   : 11067.76
+q0.25  : 11112.00
+q0.5   : 11112.00
+q0.75  : 11112.00
+max    : 11112.00
+
+###############   CPU UTILIZATION (process %)    ###############
+mean   : 99.67%
+q0.25  : 99.50%
+q0.5   : 100.30%
+q0.75  : 100.50%
+max    : 101.90%
+
+###############   CPU MEMORY (MB)    ###############
+mean   : 1357.71
+q0.25  : 1356.45
+q0.5   : 1359.03
+q0.75  : 1361.59
+max    : 1364.14
+
+###############   DISK READ (MB)     ###############
+mean   : 0.00
+q0.25  : 0.00
+q0.5   : 0.00
+q0.75  : 0.00
+max    : 0.00
+
+###############   DISK WRITE (MB)    ###############
+mean   : 0.00
+q0.25  : 0.00
+q0.5   : 0.00
+q0.75  : 0.00
+max    : 0.00
+
+============================================================
+Total training steps: 250
+GPU Usage Summary:
+  Average GPU Compute Utilization: 99.58%
+  Average GPU Memory Utilization: 36.19%
+  Average GPU Power Consumption: 219.05 W
+  Average CPU Utilization (process): 99.67%
+
+GPU Memory Summary:
+  Average Allocated: 139.92 MB
+  Average Reserved: 11067.76 MB
+  Memory Efficiency: 1.3%
+
+Output directory: /home/2023/blau9/COMP597/COMP597-starter-code/logs/experiments_milabench/resource_util/workers_4/batch_64/run_1
+============================================================

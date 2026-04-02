@@ -1,15 +1,18 @@
 #!/bin/bash
-# Full Whisper sweep: disk cache + Milabench, every batch size × every worker count.
-# Each combo runs 3×5 min (see run_experiments_*.sh).
+# Full Whisper sweep: disk cache + Milabench, every batch size × every worker count
+# × every trainer_stats in TRAINER_STATS (see run_experiments_disk.sh).
+# Each combo runs NRUNS×5 min (default NRUNS=1 here; run_experiments_*.sh default NRUNS=3 when invoked directly).
 #
 # Usage:
 #   ./scripts/run_all_experiments.sh [BATCH1 BATCH2 ...]
 #   ./scripts/run_all_experiments.sh 128 64 32
 #
 # Environment:
-#   WORKERS   Space-separated num_workers values (default: 0 4)
-#   DATA_REPEAT  Milabench repeat multiplier (default: from run_experiments_milabench.sh; n = batch_size)
-#   DATA_REPEAT  Milabench repeat (default: 200)
+#   NRUNS                      Runs per (batch, workers) cell (default: 1 for this script)
+#   WORKERS                    Space-separated num_workers values (default: 0 4)
+#   MILABENCH_TOTAL_SAMPLES    Milabench: fixed dataset len (default: 16000)
+#   TRAINER_STATS              Space-separated stats (default: resource_util resource_util_max phase_times noop simple codecarbon codecarbon_e2e)
+#                              CodeCarbon modes are slow; use e.g. TRAINER_STATS=resource_util for a quick sweep.
 #
 # Options:
 #   --disk-only       Only logs/experiments_disk/
@@ -35,17 +38,21 @@ done
 
 if [ "${#BATCH_ARGS[@]}" -eq 0 ]; then
   BATCH_SIZES=(128 64 32)
-  # BATCH_SIZES=(128 64 32 8 4 2)
 else
   BATCH_SIZES=("${BATCH_ARGS[@]}")
 fi
 
+NRUNS="${NRUNS:-1}"
 WORKERS="${WORKERS:-0 4}"
+# Full default set (disk + Milabench): resource_util, resource_util_max, phase_times, noop, simple, codecarbon, codecarbon_e2e
+TRAINER_STATS="${TRAINER_STATS:-resource_util resource_util_max phase_times noop simple codecarbon codecarbon_e2e}"
 
 echo "==================================================================="
 echo " run_all_experiments.sh"
 echo " Batch sizes: ${BATCH_SIZES[*]}"
 echo " Workers:     ${WORKERS}"
+echo " NRUNS:       ${NRUNS}"
+echo " TRAINER_STATS: ${TRAINER_STATS}"
 echo " Disk:        $([ "$RUN_DISK" -eq 1 ] && echo yes || echo no)"
 echo " Milabench:   $([ "$RUN_MILABENCH" -eq 1 ] && echo yes || echo no)"
 echo " Dry-run:     $([ "$DRY_RUN" -eq 1 ] && echo yes || echo no)"
@@ -61,19 +68,17 @@ _run() {
 }
 
 if [ "$RUN_DISK" -eq 1 ]; then
-  echo ">>> Disk cache (synthetic_whisper) -> logs/experiments_disk/workers_*/"
-  _run env WORKERS="$WORKERS" "${SCRIPTS_DIR}/run_experiments_disk.sh" "${BATCH_SIZES[@]}"
+  echo '>>> Disk cache (synthetic_whisper) -> logs/experiments_disk/<trainer_stats>/workers_*/'
+  _run env NRUNS="$NRUNS" WORKERS="$WORKERS" TRAINER_STATS="$TRAINER_STATS" "${SCRIPTS_DIR}/run_experiments_disk.sh" "${BATCH_SIZES[@]}"
   echo ""
 fi
 
 if [ "$RUN_MILABENCH" -eq 1 ]; then
-  echo ">>> Milabench (synthetic_whisper_milabench) -> logs/experiments_milabench/workers_*/"
-  _run env WORKERS="$WORKERS" "${SCRIPTS_DIR}/run_experiments_milabench.sh" "${BATCH_SIZES[@]}"
+  echo '>>> Milabench (synthetic_whisper_milabench) -> logs/experiments_milabench/<trainer_stats>/workers_*/'
+  _run env NRUNS="$NRUNS" WORKERS="$WORKERS" TRAINER_STATS="$TRAINER_STATS" "${SCRIPTS_DIR}/run_experiments_milabench.sh" "${BATCH_SIZES[@]}"
   echo ""
 fi
 
 echo "=== Done ==="
-echo "Aggregate & plot (pick workers_* and re-run for each):"
-echo "  python scripts/plotting/aggregate_and_plot.py --experiments-dir ${REPO_DIR}/logs/experiments_disk/workers_0"
-echo "  python scripts/plotting/aggregate_and_plot.py --experiments-dir ${REPO_DIR}/logs/experiments_milabench/workers_0"
-echo "(Repeat for workers_4, etc.)"
+echo "Aggregate & plot (plot_all runs aggregate for every workers_* under each trainer_stats dir):"
+echo "  python scripts/plotting/plot_all_experiments.sh"

@@ -13,7 +13,7 @@ ${SCRIPTS_DIR}/srun.sh \
     --model whisper \
     --trainer simple \
     --data synthetic_whisper \
-    --batch_size 4 \
+    --batch_size 32 \
     --learning_rate 1e-6 \
     --trainer_stats resource_util \
     --trainer_stats_configs.resource_util.output_dir '${COMP597_JOB_STUDENT_STORAGE_DIR}/whisper/stats'
@@ -30,7 +30,7 @@ echo "Copying results to home directory..."
 #     --logging.level INFO \
 #     --model whisper \
 #     --trainer simple \
-#     --batch_size 4 \
+#     --batch_size 32 \
 #     --learning_rate 1e-6 \
 #     --trainer_stats codecarbon \
 #     --trainer_stats_configs.codecarbon.run_num 1 \

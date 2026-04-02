@@ -18,7 +18,7 @@ Synthetic Whisper training uses **one of two data loaders** (see [`docs/WHISPER_
 
 | Script | Purpose |
 |--------|---------|
-| [`../run_all_experiments.sh`](../run_all_experiments.sh) | Runs `run_experiments_disk.sh` then `run_experiments_milabench.sh` with the same `WORKERS` and batch sizes (default `128 64 32`; `8 4 2` left commented in scripts). Disk default `WORKERS="0 4"`. Flags: `--disk-only`, `--milabench-only`, `--dry-run`. |
+| [`../run_all_experiments.sh`](../run_all_experiments.sh) | Runs `run_experiments_disk.sh` then `run_experiments_milabench.sh` with the same `WORKERS` and batch sizes (default `128 64 32`). Disk default `WORKERS="0 4"`. Flags: `--disk-only`, `--milabench-only`, `--dry-run`. |
 
 ## Multi-run (3 runs per batch size, 5 min each)
 
@@ -33,4 +33,4 @@ Synthetic Whisper training uses **one of two data loaders** (see [`docs/WHISPER_
 | Script | Purpose |
 |--------|---------|
 | [`../run-whisper-synthetic.sh`](../run-whisper-synthetic.sh) | Local `launch.py`, disk data, `noop` stats (quick test) |
-| [`test_one_random_run.sh`](./test_one_random_run.sh) | **One** random smoke config (`resource_util_csv`), then `plot_resources.py` → `logs/test_runs/.../plots/`. **Uses Slurm** (`srun.sh`) by default; `USE_LOCAL=1` for local `launch.py`. |
+| [`test_one_random_run.sh`](./test_one_random_run.sh) | **One** random smoke config (`resource_util`), then `plot_resources.py` → `logs/test_runs/.../plots/`. **Uses Slurm** (`srun.sh`) by default; `USE_LOCAL=1` for local `launch.py`. |

@@ -41,9 +41,9 @@ Wrappers `./scripts/start-whisper-resource-util.sh` and `./scripts/start-whisper
 
 ## Multi-run experiments
 
-Use `./scripts/run_experiments_disk.sh` (disk) or `./scripts/run_experiments_milabench.sh` (Milabench). Optional env: `DATA_REPEAT` (Milabench); **`WORKERS`** — space-separated `num_workers` values, each under `workers_<W>/`.
+Use `./scripts/run_experiments_disk.sh` (disk) or `./scripts/run_experiments_milabench.sh` (Milabench). **`WORKERS`** — space-separated `num_workers` values, each under `workers_<W>/`. For Milabench sweeps, **`MILABENCH_TOTAL_SAMPLES`** (default `16000`) fixes **`len(dataset) = batch_size × repeat`** across batch sizes by setting **`repeat = MILABENCH_TOTAL_SAMPLES / batch_size`** per run.
 
-**Memory (Milabench):** RAM is dominated by **`batch_size`** (unique cached tensors = **`n`**). **`repeat`** only changes how long you iterate (`len = n × repeat`), not per-tensor size. **`num_workers > 0`** copies the dataset into worker processes — use **`WORKERS=0`** on small nodes or smaller batch sizes. Scripts default to **`WORKERS=0`** for Slurm.
+**Memory (Milabench):** RAM is dominated by **`batch_size`** (unique cached tensors = **`n`**). **`repeat`** sets epoch length (`len = n × repeat`). **`num_workers > 0`** copies the dataset into worker processes — use **`WORKERS=0`** on small nodes or smaller batch sizes. Scripts default to **`WORKERS=0`** for Slurm.
 
 ### vs sham-bolic `synthetic_whisper` (memory / `memory_only`)
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Plot resource utilization from resource_util.csv.
+Plot resource utilization from ``resource_util.csv`` or ``resource_util_steps.csv``
+(``--trainer_stats resource_util``).
 
 Produces the same plots as sham-bolic/COMP597-starter-code:
   1. resource_util.png - overview (aggregated by step, 2x4 grid)
@@ -13,6 +14,7 @@ Usage:
     python scripts/plotting/plot_resources.py --smooth 20
 """
 import argparse
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -27,7 +29,7 @@ except ImportError:
 
 METRICS_OVERVIEW = [
     ("gpu_util", "GPU Util (%)", "GPU Utilization"),
-    # cpu_util from resource_util_csv = Process.cpu_percent(): per-process sum over cores (can exceed 100).
+    # cpu_util = Process.cpu_percent(): per-process sum over cores (can exceed 100).
     ("cpu_util", "Process CPU (sum %)", "Process CPU (sum %, all cores)"),
     (("gpu_mem_gb", "gpu_mem_pct"), ("GB", "%"), "GPU Memory"),
     ("cpu_mem_gb", "GB", "CPU Memory"),
@@ -52,6 +54,19 @@ def _setup_style() -> None:
             plt.style.use("seaborn-whitegrid")
         except OSError:
             pass
+
+
+def load_resource_plot_df(path: Path) -> pd.DataFrame:
+    """Load CSV from ``resource_util.csv`` (sham-bolic columns) or ``resource_util_steps.csv``."""
+    df = pd.read_csv(path)
+    if "gpu_util_pct" in df.columns and "gpu_util" not in df.columns:
+        _plot_dir = Path(__file__).resolve().parent
+        if str(_plot_dir) not in sys.path:
+            sys.path.insert(0, str(_plot_dir))
+        from plot_resource_util_steps import resource_util_steps_to_plot_df
+
+        return resource_util_steps_to_plot_df(df)
+    return df
 
 
 def _smooth_series(series: pd.Series, window: int) -> pd.Series:
@@ -260,7 +275,7 @@ def main() -> None:
     parser.add_argument(
         "--input", "-i",
         type=Path,
-        default=Path(__file__).resolve().parent.parent.parent / "logs" / "resource_util.csv",
+        default=Path(__file__).resolve().parent.parent.parent / "logs" / "resource_util_steps.csv",
         help="Input CSV file path",
     )
     parser.add_argument(
@@ -295,7 +310,7 @@ def main() -> None:
         default=0,
         metavar="N",
         help="If N>0, divide cpu_util by N in the overlap plot (per-core average 0–100, easier vs GPU). "
-        "resource_util_csv uses Process.cpu_percent() (per-process sum; can exceed 100); default 0 = raw sum.",
+        "Process CPU uses cpu_percent() (per-process sum; can exceed 100); default 0 = raw sum.",
     )
     parser.add_argument(
         "--no-normalize-cpu",
@@ -315,7 +330,7 @@ def main() -> None:
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
-    df = pd.read_csv(input_path)
+    df = load_resource_plot_df(input_path)
     has_phase = "phase" in df.columns
 
     if not has_phase:
