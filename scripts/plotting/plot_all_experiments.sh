@@ -41,7 +41,7 @@ for arg in "$@"; do
 done
 
 SMOOTH="${SMOOTH:-1}"
-RUNS="${RUNS:-latest}"
+RUNS="${RUNS:-all}"
 EXTRA_ARGS=(--smooth "${SMOOTH}" --runs "${RUNS}")
 
 _plot_root() {

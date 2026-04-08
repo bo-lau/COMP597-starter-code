@@ -3,60 +3,60 @@ RESOURCE UTILIZATION SUMMARY STATISTICS
 ============================================================
 
 ###############   GPU COMPUTE UTILIZATION   ###############
-mean   : 89.98%
-q0.25  : 89.75%
+mean   : 97.04%
+q0.25  : 100.00%
 q0.5   : 100.00%
 q0.75  : 100.00%
 max    : 100.00%
 
 ###############   GPU MEMORY UTILIZATION   ###############
-mean   : 33.88%
-q0.25  : 35.00%
+mean   : 35.98%
+q0.25  : 36.00%
 q0.5   : 37.00%
 q0.75  : 37.00%
-max    : 40.00%
+max    : 38.00%
 
 ###############   GPU POWER CONSUMPTION (W)    ###############
-mean   : 193.51
-q0.25  : 192.55
-q0.5   : 193.90
-q0.75  : 195.94
-max    : 205.02
+mean   : 187.98
+q0.25  : 184.32
+q0.5   : 187.94
+q0.75  : 192.84
+max    : 205.67
 
 ###############   GPU MEMORY ALLOCATED (MB)    ###############
-mean   : 138.01
+mean   : 138.63
 q0.25  : 138.63
 q0.5   : 138.63
 q0.75  : 138.63
 max    : 138.63
 
 ###############   GPU MEMORY RESERVED (MB)    ###############
-mean   : 5659.21
+mean   : 5692.00
 q0.25  : 5692.00
 q0.5   : 5692.00
 q0.75  : 5692.00
 max    : 5692.00
 
 ###############   CPU UTILIZATION (process %)    ###############
-mean   : 121.31%
-q0.25  : 114.85%
-q0.5   : 121.80%
-q0.75  : 123.93%
-max    : 228.80%
+mean   : 133.03%
+q0.25  : 123.35%
+q0.5   : 134.60%
+q0.75  : 139.02%
+max    : 176.80%
 
 ###############   CPU MEMORY (MB)    ###############
-mean   : 4546.69
-q0.25  : 4541.60
-q0.5   : 4550.08
-q0.75  : 4555.49
-max    : 4571.82
+mean   : 4533.50
+q0.25  : 4523.93
+q0.5   : 4536.06
+q0.75  : 4547.30
+max    : 4570.77
 
 ###############   DISK READ (MB)     ###############
-mean   : 2534.12
-q0.25  : 1285.66
-q0.5   : 2533.73
-q0.75  : 3786.53
-max    : 5047.77
+mean   : 2532.64
+q0.25  : 1286.84
+q0.5   : 2532.64
+q0.75  : 3785.92
+max    : 5039.67
 
 ###############   DISK WRITE (MB)    ###############
 mean   : 0.00
@@ -68,14 +68,14 @@ max    : 0.00
 ============================================================
 Total training steps: 172
 GPU Usage Summary:
-  Average GPU Compute Utilization: 89.98%
-  Average GPU Memory Utilization: 33.88%
-  Average GPU Power Consumption: 193.51 W
-  Average CPU Utilization (process): 121.31%
+  Average GPU Compute Utilization: 97.04%
+  Average GPU Memory Utilization: 35.98%
+  Average GPU Power Consumption: 187.98 W
+  Average CPU Utilization (process): 133.03%
 
 GPU Memory Summary:
-  Average Allocated: 138.01 MB
-  Average Reserved: 5659.21 MB
+  Average Allocated: 138.63 MB
+  Average Reserved: 5692.00 MB
   Memory Efficiency: 2.4%
 
 Output directory: /home/2023/blau9/COMP597/COMP597-starter-code/logs/experiments_disk/resource_util/workers_0/batch_32/run_1

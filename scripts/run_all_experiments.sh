@@ -42,7 +42,7 @@ else
   BATCH_SIZES=("${BATCH_ARGS[@]}")
 fi
 
-NRUNS="${NRUNS:-1}"
+NRUNS="${NRUNS:-3}"
 WORKERS="${WORKERS:-0 4}"
 # Full default set (disk + Milabench): resource_util, resource_util_max, phase_times, noop, simple, codecarbon, codecarbon_e2e
 TRAINER_STATS="${TRAINER_STATS:-resource_util resource_util_max phase_times noop simple codecarbon codecarbon_e2e}"

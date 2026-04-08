@@ -249,44 +249,37 @@ class ResourceUtilStats(base.TrainerStats):
     
     def start_step(self) -> None:
         """Called at the start of each training step."""
-        if self.device.type == 'cuda':
-            torch.cuda.synchronize(self.device)
-        self._record_stats()
+        pass
     
     def stop_step(self) -> None:
         """Called at the end of each training step."""
         if self.device.type == 'cuda':
             torch.cuda.synchronize(self.device)
+        self._record_stats()
     
     def start_forward(self) -> None:
         """Called at the start of forward pass."""
-        if self.device.type == 'cuda':
-            torch.cuda.synchronize(self.device)
+        pass
     
     def stop_forward(self) -> None:
         """Called at the end of forward pass."""
-        if self.device.type == 'cuda':
-            torch.cuda.synchronize(self.device)
+        pass
     
     def start_backward(self) -> None:
         """Called at the start of backward pass."""
-        if self.device.type == 'cuda':
-            torch.cuda.synchronize(self.device)
+        pass
     
     def stop_backward(self) -> None:
         """Called at the end of backward pass."""
-        if self.device.type == 'cuda':
-            torch.cuda.synchronize(self.device)
+        pass
     
     def start_optimizer_step(self) -> None:
         """Called at the start of optimizer step."""
-        if self.device.type == 'cuda':
-            torch.cuda.synchronize(self.device)
+        pass
     
     def stop_optimizer_step(self) -> None:
         """Called at the end of optimizer step."""
-        if self.device.type == 'cuda':
-            torch.cuda.synchronize(self.device)
+        pass
     
     def start_save_checkpoint(self) -> None:
         """Called when checkpointing starts."""

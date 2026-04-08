@@ -68,7 +68,6 @@ class SimpleTrainerStats(base.TrainerStats):
         pass
 
     def start_step(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.step_stats.start()
 
     def stop_step(self) -> None:
@@ -76,35 +75,27 @@ class SimpleTrainerStats(base.TrainerStats):
         self.step_stats.stop()
 
     def start_optimizer_step(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.optimizer_step_stats.start()
 
     def stop_optimizer_step(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.optimizer_step_stats.stop()
 
     def start_forward(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.forward_stats.start()
 
     def stop_forward(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.forward_stats.stop()
 
     def start_backward(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.backward_stats.start()
 
     def stop_backward(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.backward_stats.stop()
 
     def start_save_checkpoint(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.save_checkpoint_stats.start()
 
     def stop_save_checkpoint(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.save_checkpoint_stats.stop()
 
     def log_step(self) -> None:

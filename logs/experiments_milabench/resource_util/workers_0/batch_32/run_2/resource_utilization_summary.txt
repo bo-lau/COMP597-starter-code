@@ -3,53 +3,53 @@ RESOURCE UTILIZATION SUMMARY STATISTICS
 ============================================================
 
 ###############   GPU COMPUTE UTILIZATION   ###############
-mean   : 99.39%
+mean   : 99.51%
 q0.25  : 100.00%
 q0.5   : 100.00%
 q0.75  : 100.00%
 max    : 100.00%
 
 ###############   GPU MEMORY UTILIZATION   ###############
-mean   : 36.30%
+mean   : 36.45%
 q0.25  : 36.00%
 q0.5   : 36.00%
 q0.75  : 37.00%
 max    : 39.00%
 
 ###############   GPU POWER CONSUMPTION (W)    ###############
-mean   : 218.96
-q0.25  : 218.88
-q0.5   : 219.73
+mean   : 219.31
+q0.25  : 218.77
+q0.5   : 219.62
 q0.75  : 220.48
-max    : 223.83
+max    : 223.97
 
 ###############   GPU MEMORY ALLOCATED (MB)    ###############
-mean   : 138.42
+mean   : 138.63
 q0.25  : 138.63
 q0.5   : 138.63
 q0.75  : 138.63
 max    : 138.63
 
 ###############   GPU MEMORY RESERVED (MB)    ###############
-mean   : 5680.72
+mean   : 5692.00
 q0.25  : 5692.00
 q0.5   : 5692.00
 q0.75  : 5692.00
 max    : 5692.00
 
 ###############   CPU UTILIZATION (process %)    ###############
-mean   : 110.78%
+mean   : 110.72%
 q0.25  : 107.90%
-q0.5   : 110.00%
-q0.75  : 112.43%
-max    : 357.50%
+q0.5   : 110.10%
+q0.75  : 113.00%
+max    : 141.40%
 
 ###############   CPU MEMORY (MB)    ###############
-mean   : 1437.42
-q0.25  : 1411.76
-q0.5   : 1440.77
-q0.75  : 1468.06
-max    : 1470.69
+mean   : 1432.82
+q0.25  : 1410.40
+q0.5   : 1440.30
+q0.75  : 1465.85
+max    : 1471.34
 
 ###############   DISK READ (MB)     ###############
 mean   : 0.00
@@ -68,14 +68,14 @@ max    : 0.00
 ============================================================
 Total training steps: 500
 GPU Usage Summary:
-  Average GPU Compute Utilization: 99.39%
-  Average GPU Memory Utilization: 36.30%
-  Average GPU Power Consumption: 218.96 W
-  Average CPU Utilization (process): 110.78%
+  Average GPU Compute Utilization: 99.51%
+  Average GPU Memory Utilization: 36.45%
+  Average GPU Power Consumption: 219.31 W
+  Average CPU Utilization (process): 110.72%
 
 GPU Memory Summary:
-  Average Allocated: 138.42 MB
-  Average Reserved: 5680.72 MB
+  Average Allocated: 138.63 MB
+  Average Reserved: 5692.00 MB
   Memory Efficiency: 2.4%
 
 Output directory: /home/2023/blau9/COMP597/COMP597-starter-code/logs/experiments_milabench/resource_util/workers_0/batch_32/run_2

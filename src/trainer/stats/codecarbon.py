@@ -216,7 +216,6 @@ class CodeCarbonStats(base.TrainerStats):
 
     def start_step(self) -> None:
         self.iteration += 1
-        torch.cuda.synchronize(self.device)
         self.training_step_tracker.start_task(task_name = f"Step #{self.iteration}")
 
     def stop_step(self) -> None:
@@ -224,27 +223,21 @@ class CodeCarbonStats(base.TrainerStats):
         self.training_step_tracker.stop_task(task_name = f"Step #{self.iteration}")
 
     def start_forward(self) -> None: 
-        torch.cuda.synchronize(self.device)
         self.training_substep_tracker.start_task(task_name = f"Forward pass #{self.iteration}")
 
     def stop_forward(self) -> None: 
-        torch.cuda.synchronize(self.device)
         self.training_substep_tracker.stop_task(task_name = f"Forward pass #{self.iteration}")
 
     def start_backward(self) -> None:
-        torch.cuda.synchronize(self.device) 
         self.training_substep_tracker.start_task(task_name = f"Backward pass #{self.iteration}")
 
     def stop_backward(self) -> None:
-        torch.cuda.synchronize(self.device) 
         self.training_substep_tracker.stop_task(task_name = f"Backward pass #{self.iteration}")
 
     def start_optimizer_step(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.training_substep_tracker.start_task(task_name = f"Optimisation step #{self.iteration}")
 
     def stop_optimizer_step(self) -> None:
-        torch.cuda.synchronize(self.device)
         self.training_substep_tracker.stop_task(task_name = f"Optimisation step #{self.iteration}")
 
     def start_save_checkpoint(self) -> None:
