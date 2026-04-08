@@ -9,7 +9,6 @@
 \usepackage{xcolor}
 \usepackage{float}
 \usepackage{enumitem}
-\usepackage{multicol}
 \setlist{nosep}
 
 \title{Energy Profiling of Whisper Fine-Tuning:\\Instrumentation Overhead and Resource Utilization}
@@ -131,10 +130,10 @@ Table~\ref{tab:energy} summarizes CodeCarbon energy measurements. Across all con
 
 \begin{table}[H]
 \centering
-\caption{Mean energy consumption (kWh) and CO$_2$ emissions (g) from CodeCarbon, averaged over 3 runs.}
+\caption{Mean energy consumption (kWh) from CodeCarbon, averaged over 3 runs.}
 \label{tab:energy}
 \small
-\begin{tabular}{llrrrr}
+\begin{tabular}{llrrr}
 \toprule
 Source & W & B=32 & B=64 & B=128 \\
 \midrule
@@ -194,14 +193,14 @@ The stark difference between disk/\texttt{workers=0} (30--36\% overhead) and all
     \centering
     \begin{subfigure}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../logs/experiments_disk/phase_times/workers_0/plots/batch_32/phase_time_bars.png}
+        \includegraphics[width=\textwidth]{figures/phase_time_bars_disk_w0_b32.png}
         \caption{Per-phase timing: disk, workers=0, batch=32.}
         \label{fig:phase_bars}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../logs/experiments_milabench/phase_times/workers_0/plots/batch_32/phase_time_bars.png}
+        \includegraphics[width=\textwidth]{figures/phase_time_bars_mila_w0_b32.png}
         \caption{Per-phase timing: Milabench, workers=0, batch=32.}
         \label{fig:phase_bars_mila}
     \end{subfigure}
@@ -210,15 +209,15 @@ The stark difference between disk/\texttt{workers=0} (30--36\% overhead) and all
 
     \begin{subfigure}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../logs/experiments_disk/resource_util_max/workers_0/plots/compare_gpu_util.png}
+        \includegraphics[width=\textwidth]{figures/gpu_util_disk_w0.png}
         \caption{GPU utilization across batch sizes (disk, workers=0).}
         \label{fig:gpu_util}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../logs/experiments_milabench/resource_util_max/workers_0/plots/compare_gpu_util.png}
-        \caption{GPU utilization across batch sizes (Milabench, workers=0).}
+        \includegraphics[width=\textwidth]{figures/gpu_cpu_util_mila_w0_b32.png}
+        \caption{GPU and CPU utilization (Milabench, workers=0, batch=32).}
         \label{fig:gpu_util_mila}
     \end{subfigure}
 
@@ -226,14 +225,14 @@ The stark difference between disk/\texttt{workers=0} (30--36\% overhead) and all
 
     \begin{subfigure}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../logs/experiments_disk/resource_util_max/workers_0/plots/compare_resources.png}
+        \includegraphics[width=\textwidth]{figures/resources_disk_w0.png}
         \caption{Full resource timeline: disk, workers=0.}
         \label{fig:resources}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../logs/comparison_plots/trainer_vs_noop_workers_4.png}
+        \includegraphics[width=\textwidth]{figures/overhead_vs_noop_w4.png}
         \caption{Instrumentation overhead vs noop (workers=4).}
         \label{fig:overhead}
     \end{subfigure}
