@@ -38,7 +38,8 @@ RESULTS_DIR = os.path.join(os.path.dirname(REPO_ROOT), "whisper-results")
 METRICS_OVERVIEW = [
     ("gpu_util", "GPU Util (%)", "GPU Utilization"),
     ("cpu_util", "CPU Util (%)", "CPU Utilization"),
-    (("gpu_mem_gb", "gpu_mem_pct"), ("GB", "%"), "GPU Memory"),
+    # Prefer gpu_mem_pct (NVML %) over gpu_mem_gb (torch alloc — misleadingly small).
+    (("gpu_mem_pct", "gpu_mem_gb"), ("%", "GB"), "GPU Memory"),
     ("cpu_mem_gb", "GB", "CPU Memory"),
     ("ram_gb", "GB", "System RAM"),
     ("io_read_gb", "GB", "I/O Read"),

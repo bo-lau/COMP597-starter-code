@@ -31,7 +31,10 @@ METRICS_OVERVIEW = [
     ("gpu_util", "GPU Util (%)", "GPU Utilization"),
     # cpu_util = Process.cpu_percent(): per-process sum over cores (can exceed 100).
     ("cpu_util", "Process CPU (sum %)", "Process CPU (sum %, all cores)"),
-    (("gpu_mem_gb", "gpu_mem_pct"), ("GB", "%"), "GPU Memory"),
+    # Prefer gpu_mem_pct (NVML memory utilization %) when available.
+    # gpu_mem_gb from resource_util is torch.cuda.memory_allocated (~0.1 GB) — misleadingly small.
+    # gpu_mem_gb from resource_util_max is pynvml total used (~6-24 GB) — the correct value.
+    (("gpu_mem_pct", "gpu_mem_gb"), ("%", "GB"), "GPU Memory"),
     ("cpu_mem_gb", "GB", "CPU Memory"),
     ("ram_gb", "GB", "System RAM"),
     ("io_read_gb", "GB", "I/O Read"),

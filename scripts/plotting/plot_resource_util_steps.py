@@ -27,28 +27,34 @@ from plot_resources import plot_gpu_cpu_overlap, plot_overview
 
 
 def resource_util_steps_to_plot_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Map ``resource_util_steps.csv`` columns to names expected by ``plot_resources``."""
+    """Map ``resource_util_steps.csv`` columns to names expected by ``plot_resources``.
+
+    The raw CSV stores MiB values (bytes / 1024²).  We convert to SI GB
+    (MiB * 1024² / 1e9) so that units match resource_util_max, which
+    writes bytes / 1e9 directly.
+    """
     need = {"step", "gpu_util_pct", "cpu_util_pct"}
     if not need.issubset(df.columns):
         raise ValueError(
             f"Expected columns {sorted(need)}, got {list(df.columns)}. "
             "Is this a resource_util_steps.csv from --trainer_stats resource_util?"
         )
+    MIB_TO_GB = (1024 * 1024) / 1e9  # MiB → GB (SI), consistent with resource_util_max
+
     out = pd.DataFrame()
     out["step"] = df["step"]
     out["gpu_util"] = df["gpu_util_pct"]
     out["cpu_util"] = df["cpu_util_pct"]
     if "gpu_mem_alloc_mb" in df.columns:
-        out["gpu_mem_gb"] = df["gpu_mem_alloc_mb"] / 1024.0
+        out["gpu_mem_gb"] = df["gpu_mem_alloc_mb"] * MIB_TO_GB
     if "gpu_mem_util_pct" in df.columns:
         out["gpu_mem_pct"] = df["gpu_mem_util_pct"]
     if "cpu_mem_mb" in df.columns:
-        out["cpu_mem_gb"] = df["cpu_mem_mb"] / 1024.0
+        out["cpu_mem_gb"] = df["cpu_mem_mb"] * MIB_TO_GB
     if "disk_read_mb" in df.columns:
-        out["io_read_gb"] = df["disk_read_mb"] / 1024.0
+        out["io_read_gb"] = df["disk_read_mb"] * MIB_TO_GB
     if "disk_write_mb" in df.columns:
-        out["io_write_gb"] = df["disk_write_mb"] / 1024.0
-    # System RAM is not recorded by resource_util.py — overview panel stays empty.
+        out["io_write_gb"] = df["disk_write_mb"] * MIB_TO_GB
     return out
 
 
