@@ -84,7 +84,7 @@ We employ six \emph{trainer stats} modules that instrument the training loop wit
     \item \textbf{noop}: All hooks are empty (\texttt{pass}). Baseline for end-to-end wall-clock time with zero instrumentation overhead.
     \item \textbf{simple}: CUDA-synchronized timers before and after each phase. Records forward, backward, and optimizer durations. No resource monitoring or file I/O during training.
     \item \textbf{phase\_times}: Inherits \texttt{simple}'s timing hooks; writes per-step phase durations to a CSV file at the end of training.
-    \item \textbf{resource\_util}: Records GPU utilization, GPU power draw, GPU memory (allocated and reserved), CPU utilization, RAM usage, and disk I/O per step via NVML and \texttt{psutil}. Also includes phase timing via CUDA sync.
+    \item \textbf{resource\_util}: Records GPU utilization, GPU power draw, GPU memory (allocated and reserved), CPU utilization, RAM usage, and disk I/O per step via NVML and \texttt{psutil}. CPU utilization is measured with \texttt{psutil.Process().cpu\_percent()}, which reports the \emph{sum} across all cores for the training process (values can exceed 100\%). Also includes phase timing via CUDA sync.
     \item \textbf{codecarbon}: CodeCarbon energy tracking with a 500\,ms power sampling interval, combined with phase timing.
     \item \textbf{codecarbon\_e2e}: CodeCarbon with 86{,}400\,s sampling interval (effectively one sample for the entire run), designed to minimize polling overhead while still capturing total energy.
 \end{itemize}
@@ -144,11 +144,11 @@ codecarbon      & 238.7 & 219.0 & 215.7 \\
 
 When comparing against \texttt{simple} as a baseline (isolating monitoring overhead from sync overhead), resource monitoring adds $<$3\% and CodeCarbon adds 1--6\% on top of the sync cost.
 
-The configuration dependence of overhead is explained by the degree of CPU/GPU overlap lost to synchronization. With \texttt{workers=0} on disk, the main thread can load the next batch \emph{while} the GPU processes the current one---sync destroys this overlap. With \texttt{workers=4}, background processes keep batches ready regardless of main-thread blocking. With Milabench, data generation is inherently slower ($\sim$1.2\,s/step vs $\sim$0.4\,s/step for disk), so the GPU is already waiting for data and sync adds little.
+The configuration dependence of overhead is explained by the degree of CPU/GPU overlap lost to synchronization. With \texttt{workers=0} on disk, the main thread can load the next batch \emph{while} the GPU processes the current one---sync destroys this overlap. With \texttt{workers=4}, background processes keep batches ready regardless of main-thread blocking. With Milabench, in-memory data loading is near-instant and does not overlap with GPU execution in any meaningful way, so synchronization has little additional cost to expose.
 
 \subsection{End-to-End Energy Consumption}
 
-Table~\ref{tab:energy} summarizes CodeCarbon energy measurements. Across all configurations, energy breaks down as approximately 66\% CPU, 32\% GPU, and 2\% RAM. The CPU-dominated breakdown is an artifact of TDP-based estimation; the actual CPU power draw is likely much lower than the reported $\sim$360\,W estimate across all 64 cores, given that only 4 cores are allocated.
+Table~\ref{tab:energy} summarizes CodeCarbon energy measurements. Across all configurations, energy breaks down as approximately 65--73\% CPU, 25--34\% GPU, and 2\% RAM. The CPU-dominated breakdown is an artifact of TDP-based estimation; the actual CPU power draw is likely much lower than the reported $\sim$360\,W estimate across all 64 cores, given that only 4 cores are allocated.
 
 \begin{table}[H]
 \centering
@@ -198,7 +198,7 @@ As batch size increases from 32 to 128, both forward and backward durations incr
 
 \subsection{System Utilization}
 
-Figure~\ref{fig:gpu_util} shows GPU utilization across batch sizes. GPU utilization is consistently above 95\% during steady-state training across all batch sizes, confirming that the workload is compute-bound on the RTX~A5000. Step~1 exhibits lower utilization ($\sim$1--6\%) due to CUDA JIT compilation and memory allocation, but this warm-up cost is amortized over the full training run.
+Figure~\ref{fig:gpu_util} shows GPU utilization across batch sizes. GPU utilization is consistently above 97\% during steady-state training across all batch sizes, confirming that the workload is compute-bound on the RTX~A5000. Step~1 exhibits lower utilization ($\sim$62--90\%) due to CUDA JIT compilation and initial memory allocation, but recovers to near-100\% by step~2.
 
 \begin{figure}[H]
     \centering
@@ -214,7 +214,7 @@ Figure~\ref{fig:gpu_util} shows GPU utilization across batch sizes. GPU utilizat
     \label{fig:gpu_util_mila}
 \end{figure}
 
-CPU utilization averages $\sim$120\% across the 4 allocated cores, reflecting the main PyTorch training thread plus data loading (Figure~\ref{fig:gpu_util_mila}). GPU memory usage scales modestly with batch size: $\sim$6.8\,GB for batch~32, $\sim$6.9\,GB for batch~64, and $\sim$7.2\,GB for batch~128---all well within the 24\,GB A5000 capacity.
+CPU utilization varies with batch size---$\sim$73\% for batch~32, $\sim$152\% for batch~64, and $\sim$189\% for batch~128 on the 4 allocated cores---reflecting increased data-loading and preprocessing work for larger batches (Figure~\ref{fig:gpu_util_mila}). GPU memory usage scales substantially with batch size: $\sim$6.8\,GB for batch~32, $\sim$12.5\,GB for batch~64, and $\sim$23.9\,GB for batch~128, nearly saturating the 24\,GB A5000 at the largest batch size.
 
 \begin{figure}[H]
     \centering
@@ -229,7 +229,7 @@ Disk I/O is concentrated at the beginning of training (initial data loading) and
 
 Figures~\ref{fig:overhead_w0} and~\ref{fig:overhead} compare the overhead of each trainer stats module relative to noop for \texttt{workers=0} and \texttt{workers=4}, respectively. The overhead hierarchy is:
 \begin{enumerate}
-    \item \textbf{CUDA synchronization} (shared by all non-noop trainers): 30--36\% with disk/\texttt{workers=0}; 1--5\% with \texttt{workers=4}; 1--5\% with Milabench.
+    \item \textbf{CUDA synchronization} (shared by all non-noop trainers): 30--36\% with disk/\texttt{workers=0}; 1--7\% with \texttt{workers=4}; 1--5\% with Milabench.
     \item \textbf{Resource monitoring} (NVML, psutil, disk I/O): $<$3\% additional overhead beyond simple timer-based sync.
     \item \textbf{CodeCarbon energy tracking}: 1--6\% additional overhead, with \texttt{codecarbon\_e2e} (sparse sampling) slightly lower than \texttt{codecarbon} (500\,ms polling).
 \end{enumerate}
@@ -248,23 +248,23 @@ Figures~\ref{fig:overhead_w0} and~\ref{fig:overhead} compare the overhead of eac
     \label{fig:overhead}
 \end{figure}
 
-The stark difference between disk/\texttt{workers=0} (30--36\% overhead) and all other configurations (1--7\%) arises from the loss of CPU/GPU pipeline overlap. With \texttt{workers=0}, the main thread loads data asynchronously with GPU execution; CUDA synchronization blocks this overlap, adding $\sim$20\,s to a 72\,s run. With background workers or slower data pipelines, there is less overlap to lose.
+The stark difference between disk/\texttt{workers=0} (30--36\% overhead) and all other configurations (1--7\%) arises from the loss of CPU/GPU pipeline overlap. With \texttt{workers=0}, the main thread loads data asynchronously with GPU execution; CUDA synchronization blocks this overlap, adding $\sim$24\,s to a 72\,s run. With background workers or slower data pipelines, there is less overlap to lose.
 
 % ============================================================
 \section{Discussion}
 % ============================================================
 
 \textbf{Where is energy spent?}
-The backward pass dominates compute time at $\sim$68\% of each step, making gradient computation the primary driver of GPU energy consumption. In terms of CodeCarbon's reported total, CPU energy appears to dominate ($\sim$66\%), but this is an artifact of TDP-based estimation: CodeCarbon attributes the full 360\,W TDP of the 64-core EPYC to the process even though only 4 cores are allocated. The actual CPU power draw is likely 20--40\,W, which would make GPU energy the true dominant component at $>$70\% of total.
+The backward pass dominates compute time at $\sim$68\% of each step, making gradient computation the primary driver of GPU energy consumption. In terms of CodeCarbon's reported total, CPU energy appears to dominate (65--73\%), but this is an artifact of TDP-based estimation: CodeCarbon attributes the full 360\,W TDP of the 64-core EPYC to the process even though only 4 cores are allocated. The actual CPU power draw is likely 20--40\,W, which would make GPU energy the true dominant component at $>$70\% of total.
 
 \textbf{GPU utilization and inefficiency.}
-GPU utilization exceeds 95\% during steady-state training for all batch sizes, confirming the workload is compute-bound. The primary source of inefficiency is the first training step, which takes $\sim$2$\times$ longer due to CUDA JIT compilation and initial memory allocation. For short runs (5 minutes), this warm-up represents $<$2\% of total time. No significant underutilization periods were observed during steady-state training, suggesting that Whisper fine-tuning on synthetic data saturates the A5000's compute capacity.
+GPU utilization exceeds 97\% during steady-state training for all batch sizes, confirming the workload is compute-bound. The primary source of inefficiency is the first training step, which takes $\sim$2.8$\times$ longer due to CUDA JIT compilation and initial memory allocation. For short runs (5 minutes), this warm-up represents $<$2\% of total time. No significant underutilization periods were observed during steady-state training, suggesting that Whisper fine-tuning on synthetic data saturates the A5000's compute capacity.
 
 \textbf{Batch size, overhead, and practical trade-offs.}
 Larger batches yield higher throughput but total energy is roughly constant across batch sizes because runs are time-limited (Table~\ref{tab:energy}). The dominant measurement overhead is \texttt{torch.cuda.synchronize()}, required for accurate GPU phase timing but not a tool limitation---it is a fundamental property of CUDA's asynchronous model. With background workers (\texttt{workers=4}), overhead is $<$7\% across all configurations, acceptable for profiling. For production training the \texttt{noop} module provides zero overhead.
 
 \textbf{Data loading: disk cache vs.\ in-memory.}
-The disk cache backend serializes the dataset to a \texttt{.pt} file on SSD; after the first access the Linux page cache serves it from RAM, so steady-state disk I/O is effectively zero (Figure~\ref{fig:resources}). The in-memory Milabench backend keeps all data in RAM by construction---no file is ever read or written---eliminating any storage bottleneck and keeping GPU utilization near 100\%. However, this in-memory design is not representative of production workloads where datasets (raw audio, images, large corpora) exceed RAM and must be streamed from disk or networked storage, making I/O a potential first-order bottleneck. In our experiments both backends produce nearly identical GPU utilization ($>$95\%) because the synthetic dataset fits in page cache, but workloads with larger datasets would likely show a different picture.
+The disk cache backend serializes the dataset to a \texttt{.pt} file on SSD; after the first access the Linux page cache serves it from RAM, so steady-state disk I/O is effectively zero (Figure~\ref{fig:resources}). The in-memory Milabench backend keeps all data in RAM by construction---no file is ever read or written---eliminating any storage bottleneck and keeping GPU utilization near 100\%. However, this in-memory design is not representative of production workloads where datasets (raw audio, images, large corpora) exceed RAM and must be streamed from disk or networked storage, making I/O a potential first-order bottleneck. In our experiments both backends produce nearly identical GPU utilization ($>$97\%) because the synthetic dataset fits in page cache, but workloads with larger datasets would likely show a different picture.
 
 \textbf{Limitations.}
 (1)~CPU energy is TDP-estimated, not measured via RAPL, so the reported CPU/GPU energy split is unreliable. (2)~Training duration is parsed from tqdm with integer-second precision; sub-second accuracy would require additional high-resolution timers. (3)~All experiments use synthetic data; real audio datasets with variable-length inputs and I/O-bound loading patterns may exhibit different utilization profiles. (4)~We profile a single GPU; multi-GPU training would introduce communication overhead not captured here.
