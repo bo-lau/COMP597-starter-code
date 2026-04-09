@@ -180,48 +180,13 @@ Disk experiments consume roughly half the energy of Milabench experiments, propo
 
 Figure~\ref{fig:phase_bars} shows per-phase mean durations for batch~32. The backward pass dominates at $\sim$290\,ms ($\sim$68\% of step time), followed by forward at $\sim$125\,ms ($\sim$30\%), with the optimizer step negligible at $\sim$2\,ms ($\sim$0.5\%). The backward pass is $\sim$2.3$\times$ slower than the forward pass because it computes gradients for all parameters in addition to traversing the computation graph. The optimizer step is fast because AdamW performs only element-wise updates.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/phase_time_bars_disk_w0_b32.png}
-    \caption{Per-phase timing (disk, w=0, B=32).}
-    \label{fig:phase_bars}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/resource_phases_disk_w0_b32.png}
-    \caption{Per-phase resource distributions (disk, w=0, B=32). Violin plots show GPU utilization drops during the forward pass and CPU spikes during the optimizer step.}
-    \label{fig:phase_violins}
-\end{figure}
-
-As batch size increases from 32 to 128, both forward and backward durations increase (more data per step), but the optimizer step remains constant since it depends only on the number of parameters, not the batch size. The standard deviation across steps is low ($<$5\,ms for steady-state steps), indicating stable per-step performance after the first warm-up step.
+As batch size increases from 32 to 128, both forward and backward durations increase (more data per step), but the optimizer step remains constant since it depends only on the number of parameters, not the batch size. The standard deviation across steps is low ($<$5\,ms for steady-state steps), indicating stable per-step performance after the first warm-up step. Figure~\ref{fig:phase_bars} shows per-phase mean durations and Figure~\ref{fig:phase_violins} shows the per-phase resource distributions.
 
 \subsection{System Utilization}
 
 Figure~\ref{fig:gpu_util} shows GPU utilization across batch sizes. GPU utilization is consistently above 97\% during steady-state training across all batch sizes, confirming that the workload is compute-bound on the RTX~A5000. Step~1 exhibits lower utilization ($\sim$62--90\%) due to CUDA JIT compilation and initial memory allocation, but recovers to near-100\% by step~2.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/gpu_util_disk_w0.png}
-    \caption{GPU utilization across batch sizes (disk, w=0).}
-    \label{fig:gpu_util}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/gpu_cpu_util_mila_w0_b32.png}
-    \caption{GPU and CPU utilization (Milabench, w=0, B=32). Left axis: GPU utilization; right axis: process CPU utilization (sum across cores, can exceed 100\%).}
-    \label{fig:gpu_util_mila}
-\end{figure}
-
 CPU utilization varies with batch size---$\sim$73\% for batch~32, $\sim$152\% for batch~64, and $\sim$189\% for batch~128 on the 4 allocated cores---reflecting increased data-loading and preprocessing work for larger batches (Figure~\ref{fig:gpu_util_mila}). GPU memory usage scales substantially with batch size: $\sim$6.8\,GB for batch~32, $\sim$12.5\,GB for batch~64, and $\sim$23.9\,GB for batch~128, nearly saturating the 24\,GB A5000 at the largest batch size.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/resources_disk_w0.png}
-    \caption{Full resource timeline (disk, w=0).}
-    \label{fig:resources}
-\end{figure}
 
 Disk I/O is concentrated at the beginning of training (initial data loading) and is negligible during steady-state steps (Figure~\ref{fig:resources}), confirming that the data fits in the OS page cache after the first pass.
 
@@ -234,21 +199,64 @@ Figures~\ref{fig:overhead_w0} and~\ref{fig:overhead} compare the overhead of eac
     \item \textbf{CodeCarbon energy tracking}: 1--6\% additional overhead, with \texttt{codecarbon\_e2e} (sparse sampling) slightly lower than \texttt{codecarbon} (500\,ms polling).
 \end{enumerate}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/overhead_vs_noop_w0.png}
-    \caption{Instrumentation overhead vs.\ noop (workers=0). Disk overhead is 30--36\%; Milabench overhead is 1--5\%.}
-    \label{fig:overhead_w0}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/overhead_vs_noop_w4.png}
-    \caption{Instrumentation overhead vs.\ noop (workers=4). All configurations show $<$7\% overhead.}
-    \label{fig:overhead}
-\end{figure}
-
 The stark difference between disk/\texttt{workers=0} (30--36\% overhead) and all other configurations (1--7\%) arises from the loss of CPU/GPU pipeline overlap. With \texttt{workers=0}, the main thread loads data asynchronously with GPU execution; CUDA synchronization blocks this overlap, adding $\sim$24\,s to a 72\,s run. With background workers or slower data pipelines, there is less overlap to lose.
+
+% ============================================================
+% All figures on a single page
+% ============================================================
+\begin{figure*}[p]
+\centering
+
+\begin{minipage}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/phase_time_bars_disk_w0_b32.png}
+    \captionof{figure}{Per-phase timing (disk, w=0, B=32).}
+    \label{fig:phase_bars}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/resource_phases_disk_w0_b32.png}
+    \captionof{figure}{Per-phase resource distributions (disk, w=0, B=32).}
+    \label{fig:phase_violins}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/gpu_util_disk_w0.png}
+    \captionof{figure}{GPU utilization across batch sizes (disk, w=0).}
+    \label{fig:gpu_util}
+\end{minipage}
+
+\vspace{6pt}
+
+\begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/gpu_cpu_util_mila_w0_b32.png}
+    \captionof{figure}{GPU and CPU utilization (Milabench, w=0, B=32).}
+    \label{fig:gpu_util_mila}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/resources_disk_w0.png}
+    \captionof{figure}{Full resource timeline (disk, w=0).}
+    \label{fig:resources}
+\end{minipage}
+
+\vspace{6pt}
+
+\begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/overhead_vs_noop_w0.png}
+    \captionof{figure}{Instrumentation overhead vs.\ noop (workers=0).}
+    \label{fig:overhead_w0}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/overhead_vs_noop_w4.png}
+    \captionof{figure}{Instrumentation overhead vs.\ noop (workers=4).}
+    \label{fig:overhead}
+\end{minipage}
+
+\end{figure*}
 
 % ============================================================
 \section{Discussion}
