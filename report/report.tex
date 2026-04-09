@@ -11,11 +11,18 @@
 \usepackage{enumitem}
 \setlist{nosep}
 
+\setlength{\textfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{2pt}
+
 \title{COMP 597 -- Energy Profiling of Whisper Fine-Tuning:\\Instrumentation Overhead and Resource Utilization}
 \author{Bo Lau\\(261026663)\\McGill University}
 \date{}
 
 \begin{document}
+\raggedbottom
 \maketitle
 
 % ============================================================
@@ -175,21 +182,14 @@ Figure~\ref{fig:phase_bars} shows per-phase mean durations for batch~32. The bac
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/phase_time_bars_disk_w0_b32.png}
+    \includegraphics[width=\columnwidth]{figures/phase_time_bars_disk_w0_b32.png}
     \caption{Per-phase timing (disk, w=0, B=32).}
     \label{fig:phase_bars}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/phase_time_bars_mila_w0_b32.png}
-    \caption{Per-phase timing (Milabench, w=0, B=32).}
-    \label{fig:phase_bars_mila}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.48\textwidth]{figures/resource_phases_disk_w0_b32.png}
+    \includegraphics[width=\columnwidth]{figures/resource_phases_disk_w0_b32.png}
     \caption{Per-phase resource distributions (disk, w=0, B=32). Violin plots show GPU utilization drops during the forward pass and CPU spikes during the optimizer step.}
     \label{fig:phase_violins}
 \end{figure}
@@ -198,45 +198,32 @@ As batch size increases from 32 to 128, both forward and backward durations incr
 
 \subsection{System Utilization}
 
-Figures~\ref{fig:gpu_util} and~\ref{fig:gpu_util_w4} show GPU utilization across batch sizes for workers=0 and workers=4 on disk data. GPU utilization is consistently above 95\% during steady-state training across all batch sizes, confirming that the workload is compute-bound on the RTX~A5000. Step~1 exhibits lower utilization ($\sim$1--6\%) due to CUDA JIT compilation and memory allocation, but this warm-up cost is amortized over the full training run.
+Figure~\ref{fig:gpu_util} shows GPU utilization across batch sizes. GPU utilization is consistently above 95\% during steady-state training across all batch sizes, confirming that the workload is compute-bound on the RTX~A5000. Step~1 exhibits lower utilization ($\sim$1--6\%) due to CUDA JIT compilation and memory allocation, but this warm-up cost is amortized over the full training run.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/gpu_util_disk_w0.png}
+    \includegraphics[width=\columnwidth]{figures/gpu_util_disk_w0.png}
     \caption{GPU utilization across batch sizes (disk, w=0).}
     \label{fig:gpu_util}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/gpu_cpu_util_mila_w0_b32.png}
+    \includegraphics[width=\columnwidth]{figures/gpu_cpu_util_mila_w0_b32.png}
     \caption{GPU and CPU utilization (Milabench, w=0, B=32).}
     \label{fig:gpu_util_mila}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.48\textwidth]{figures/gpu_util_disk_w4.png}
-    \caption{GPU utilization across batch sizes (disk, w=4).}
-    \label{fig:gpu_util_w4}
 \end{figure}
 
 CPU utilization averages $\sim$120\% across the 4 allocated cores, reflecting the main PyTorch training thread plus data loading (Figure~\ref{fig:gpu_util_mila}). GPU memory usage scales modestly with batch size: $\sim$6.8\,GB for batch~32, $\sim$6.9\,GB for batch~64, and $\sim$7.2\,GB for batch~128---all well within the 24\,GB A5000 capacity.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/resources_disk_w0.png}
+    \includegraphics[width=\columnwidth]{figures/resources_disk_w0.png}
     \caption{Full resource timeline (disk, w=0).}
     \label{fig:resources}
 \end{figure}
 
 Disk I/O is concentrated at the beginning of training (initial data loading) and is negligible during steady-state steps (Figure~\ref{fig:resources}), confirming that the data fits in the OS page cache after the first pass.
-
-\subsection{Batch Size Effects}
-
-The number of steps completed per run varies inversely with batch size: 172 / 86 / 43 steps for batch 32 / 64 / 128 on disk data, and 500 / 250 / 125 on Milabench. Despite fewer steps, larger batches achieve higher throughput (samples/s) because GPU utilization per step improves with larger workloads.
-
-Total energy is approximately constant across batch sizes (Table~\ref{tab:energy}) because all runs are bounded by the same 5-minute time limit. The energy-per-sample is thus lower for larger batches. However, in practice, the choice of batch size also affects convergence and final model quality---considerations outside the scope of this profiling study.
 
 \subsection{Instrumentation Overhead}
 
@@ -249,14 +236,14 @@ Figures~\ref{fig:overhead_w0} and~\ref{fig:overhead} compare the overhead of eac
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/overhead_vs_noop_w0.png}
+    \includegraphics[width=\columnwidth]{figures/overhead_vs_noop_w0.png}
     \caption{Instrumentation overhead vs.\ noop (workers=0). Disk overhead is 30--36\%; Milabench overhead is 1--5\%.}
     \label{fig:overhead_w0}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/overhead_vs_noop_w4.png}
+    \includegraphics[width=\columnwidth]{figures/overhead_vs_noop_w4.png}
     \caption{Instrumentation overhead vs.\ noop (workers=4). All configurations show $<$7\% overhead.}
     \label{fig:overhead}
 \end{figure}
@@ -273,22 +260,11 @@ The backward pass dominates compute time at $\sim$68\% of each step, making grad
 \textbf{GPU utilization and inefficiency.}
 GPU utilization exceeds 95\% during steady-state training for all batch sizes, confirming the workload is compute-bound. The primary source of inefficiency is the first training step, which takes $\sim$2$\times$ longer due to CUDA JIT compilation and initial memory allocation. For short runs (5 minutes), this warm-up represents $<$2\% of total time. No significant underutilization periods were observed during steady-state training, suggesting that Whisper fine-tuning on synthetic data saturates the A5000's compute capacity.
 
-\textbf{Trade-offs: throughput, batch size, and energy.}
-Larger batch sizes increase per-step compute time but reduce the number of steps needed, yielding higher throughput (samples/s). Since our runs are time-limited, total energy is approximately constant across batch sizes. In fixed-epoch training (rather than fixed-time), larger batches would reduce total energy by completing the epoch in fewer, more GPU-efficient steps. The choice involves a trade-off with convergence behavior that is beyond our profiling scope.
-
-\textbf{Measurement overhead.}
-The dominant overhead is \texttt{torch.cuda.synchronize()}, which is \emph{required} for accurate per-phase GPU timing. This is not a limitation of the monitoring tools but a fundamental property of CUDA's asynchronous execution model. The practical impact depends on pipeline structure: with background DataLoader workers (\texttt{workers=4}), overhead is $<$7\% across all configurations---acceptable for profiling runs. For production training where phase-level timing is not needed, the \texttt{noop} stats module provides zero overhead.
+\textbf{Batch size, overhead, and practical trade-offs.}
+Larger batches yield higher throughput but total energy is roughly constant across batch sizes because runs are time-limited (Table~\ref{tab:energy}). The dominant measurement overhead is \texttt{torch.cuda.synchronize()}, required for accurate GPU phase timing but not a tool limitation---it is a fundamental property of CUDA's asynchronous model. With background workers (\texttt{workers=4}), overhead is $<$7\% across all configurations, acceptable for profiling. For production training the \texttt{noop} module provides zero overhead.
 
 \textbf{Data loading: disk cache vs.\ in-memory.}
-The two backends differ in three respects: \emph{where} data lives, \emph{how} it is served, and what that implies for I/O bottlenecks.
-
-With the disk cache backend, the full dataset is serialized to a \texttt{.pt} file on SSD before training begins. Each training run loads this file via a standard PyTorch \texttt{DataLoader}. On the first access, data travels from SSD into the Linux page cache; on every subsequent access it is served directly from RAM-backed page cache. Because the dataset (5{,}500 samples) fits comfortably in the 4\,GB SLURM allocation, steady-state disk I/O is effectively zero after warm-up (confirmed in Figure~\ref{fig:resources}). The disk path with \texttt{workers=0} completes one epoch in $\sim$72\,s (172 steps).
-
-The in-memory (Milabench) backend takes a fundamentally different approach: a small batch of synthetic samples is generated once in RAM and repeated to reach the target dataset size (16{,}000 samples). No file is ever written or read, so the OS storage stack is bypassed entirely. Per-step data delivery is slightly slower ($\sim$1.2\,ms/step vs.\ $\sim$0.4\,ms/step for disk) because samples are regenerated from the in-memory template each iteration, yielding $\sim$211\,s for 500 steps. Because the data never leaves RAM, the Milabench path has no I/O bottleneck by construction---the GPU is fed as fast as memory bandwidth allows, which keeps utilization near 100\% throughout the run.
-
-However, this in-memory design is not representative of most production training workloads. Real-world datasets (e.g., hours of raw audio, high-resolution images, or large text corpora) are typically too large to fit in RAM and must be streamed from disk or networked storage. In those settings, I/O can become a first-order bottleneck---especially when storage throughput cannot keep pace with GPU compute. The Milabench approach is therefore useful as an upper bound on GPU utilization, isolating compute behavior from storage effects, but it should not be taken as evidence that data loading is unimportant in practice.
-
-Despite these architectural differences, the two backends produce nearly identical GPU utilization ($>$95\%) and per-step phase-time distributions during steady state in our experiments. This is because our synthetic dataset is small enough to fit in the Linux page cache, so even the disk path behaves like an in-memory path after warm-up. The practical consequence is that for small, fixed-shape datasets on modern hardware, data loading strategy has negligible impact on carbon cost per sample. Workloads with larger or more complex datasets would likely show a different picture.
+The disk cache backend serializes the dataset to a \texttt{.pt} file on SSD; after the first access the Linux page cache serves it from RAM, so steady-state disk I/O is effectively zero (Figure~\ref{fig:resources}). The in-memory Milabench backend keeps all data in RAM by construction---no file is ever read or written---eliminating any storage bottleneck and keeping GPU utilization near 100\%. However, this in-memory design is not representative of production workloads where datasets (raw audio, images, large corpora) exceed RAM and must be streamed from disk or networked storage, making I/O a potential first-order bottleneck. In our experiments both backends produce nearly identical GPU utilization ($>$95\%) because the synthetic dataset fits in page cache, but workloads with larger datasets would likely show a different picture.
 
 \textbf{Limitations.}
 (1)~CPU energy is TDP-estimated, not measured via RAPL, so the reported CPU/GPU energy split is unreliable. (2)~Training duration is parsed from tqdm with integer-second precision; sub-second accuracy would require additional high-resolution timers. (3)~All experiments use synthetic data; real audio datasets with variable-length inputs and I/O-bound loading patterns may exhibit different utilization profiles. (4)~We profile a single GPU; multi-GPU training would introduce communication overhead not captured here.
