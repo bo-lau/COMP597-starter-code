@@ -11,12 +11,22 @@
 \usepackage{enumitem}
 \setlist{nosep}
 
-\title{Energy Profiling of Whisper Fine-Tuning:\\Instrumentation Overhead and Resource Utilization}
-\author{COMP 597 -- Sustainability in Systems Design\\McGill University}
+\title{COMP 597 -- Energy Profiling of Whisper Fine-Tuning:\\Instrumentation Overhead and Resource Utilization}
+\author{Bo Lau\\(261026663)\\McGill University}
 \date{}
 
 \begin{document}
 \maketitle
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+Training workloads are increasingly evaluated not only by accuracy and throughput but by the energy and carbon cost of running them at scale. This project adopts that perspective and studies a fine-tuning scenario derived from the Milabench benchmarking stack~\cite{milabench}, using reported CO$_2$ equivalents from CodeCarbon~\cite{codecarbon} as a primary lens on ``where the carbon goes'' alongside detailed timing and utilization.
+
+Milabench-style setups typically rely on synthetic, in-memory data paths that keep the accelerator busy and abstract away storage. Here we pair that view with a complementary configuration in which fixed-shape Mel spectrograms reside on local SSD and are fed through a conventional PyTorch \texttt{Dataset} and \texttt{DataLoader}. The motivating question was whether moving work off a purely RAM-backed pipeline and onto explicit disk reads would reveal input bottlenecks or qualitatively different energy profiles---for example, if sustained I/O or CPU-side preparation became a first-order concern.
+
+In practice, the behavior we observe is closer to a classical compute-bound regime. Once tensors are resident in the Linux page cache, repeated access from disk is difficult to distinguish from memory-backed serving for this workload, and GPU utilization remains high during steady-state training. The sections that follow detail the Whisper fine-tuning setup, the instrumentation tiers we used to separate measurement overhead from real compute time, and how energy concentrates in the backward pass and GPU power draw despite the two data backends.
 
 % ============================================================
 \section{Workload Description}
@@ -61,14 +71,13 @@ The number of training steps per run depends on both the dataset size and the ti
 
 \subsection{Measurement Setup}
 
-We employ seven \emph{trainer stats} modules that instrument the training loop with increasing levels of detail:
+We employ six \emph{trainer stats} modules that instrument the training loop with increasing levels of detail:
 
 \begin{itemize}
     \item \textbf{noop}: All hooks are empty (\texttt{pass}). Baseline for end-to-end wall-clock time with zero instrumentation overhead.
     \item \textbf{simple}: CUDA-synchronized timers before and after each phase. Records forward, backward, and optimizer durations. No resource monitoring or file I/O during training.
     \item \textbf{phase\_times}: Inherits \texttt{simple}'s timing hooks; writes per-step phase durations to a CSV file at the end of training.
-    \item \textbf{resource\_util}: Records GPU utilization, GPU memory, CPU utilization, RAM usage, and disk I/O per step via NVML and \texttt{psutil}. Also includes phase timing via CUDA sync.
-    \item \textbf{resource\_util\_max}: Per-step resource snapshots plus a high-precision total training duration recorded via \texttt{time.perf\_counter\_ns()}.
+    \item \textbf{resource\_util}: Records GPU utilization, GPU power draw, GPU memory (allocated and reserved), CPU utilization, RAM usage, and disk I/O per step via NVML and \texttt{psutil}. Also includes phase timing via CUDA sync.
     \item \textbf{codecarbon}: CodeCarbon energy tracking with a 500\,ms power sampling interval, combined with phase timing.
     \item \textbf{codecarbon\_e2e}: CodeCarbon with 86{,}400\,s sampling interval (effectively one sample for the entire run), designed to minimize polling overhead while still capturing total energy.
 \end{itemize}
@@ -83,11 +92,11 @@ CodeCarbon samples GPU power via NVML at the configured interval. CPU power is e
 \section{Results}
 % ============================================================
 
-We organize results into five categories: end-to-end timing, energy consumption, per-phase analysis, system utilization, and instrumentation overhead. All figures referenced in this section are collected in Figures~\ref{fig:phase_bars}--\ref{fig:overhead}.
+We organize results into five categories: end-to-end timing, energy consumption, per-phase analysis, system utilization, and instrumentation overhead. All figures referenced in this section are collected in Figure~\ref{fig:all}.
 
 \subsection{End-to-End Execution Time}
 
-Table~\ref{tab:e2e_time} shows the mean training duration for each trainer stats module. With disk loading and \texttt{workers=0}, all instrumented trainers are 30--36\% slower than noop. Crucially, this overhead is nearly identical across \texttt{simple}, \texttt{phase\_times}, \texttt{resource\_util}, and \texttt{resource\_util\_max}---modules that differ substantially in what they measure but all share the same \texttt{torch.cuda.synchronize()} calls inherited from \texttt{SimpleTrainerStats}. This uniformity demonstrates that the overhead originates from CUDA synchronization, not from the monitoring logic itself.
+Table~\ref{tab:e2e_time} shows the mean training duration for each trainer stats module. With disk loading and \texttt{workers=0}, all instrumented trainers are 30--36\% slower than noop. Crucially, this overhead is nearly identical across \texttt{simple}, \texttt{phase\_times}, and \texttt{resource\_util}---modules that differ substantially in what they measure but all share the same \texttt{torch.cuda.synchronize()} calls. This uniformity demonstrates that the overhead originates from CUDA synchronization, not from the monitoring logic itself.
 
 \begin{table}[H]
 \centering
@@ -116,6 +125,12 @@ noop            & 211.0 & 208.7 & 205.0 \\
 simple          & 213.3 & 214.0 & 210.7 \\
 resource\_util  & 214.7 & 214.3 & 211.0 \\
 codecarbon      & 217.0 & 215.7 & 211.7 \\
+\midrule
+\multicolumn{4}{l}{\textit{Milabench, workers=4}} \\
+noop            & 224.7 & 213.0 & 210.0 \\
+simple          & 231.7 & 217.3 & 215.0 \\
+resource\_util  & 231.3 & 217.7 & 215.0 \\
+codecarbon      & 238.7 & 219.0 & 215.7 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -176,7 +191,7 @@ Total energy is approximately constant across batch sizes (Table~\ref{tab:energy
 
 \subsection{Instrumentation Overhead}
 
-Figure~\ref{fig:overhead} compares the overhead of each trainer stats module relative to noop for \texttt{workers=4}. The overhead hierarchy is:
+Figures~\ref{fig:overhead_w0} and~\ref{fig:overhead} compare the overhead of each trainer stats module relative to noop for \texttt{workers=0} and \texttt{workers=4}, respectively. The overhead hierarchy is:
 \begin{enumerate}
     \item \textbf{CUDA synchronization} (shared by all non-noop trainers): 30--36\% with disk/\texttt{workers=0}; 1--5\% with \texttt{workers=4}; 1--5\% with Milabench.
     \item \textbf{Resource monitoring} (NVML, psutil, disk I/O): $<$3\% additional overhead beyond simple timer-based sync.
@@ -186,58 +201,82 @@ Figure~\ref{fig:overhead} compares the overhead of each trainer stats module rel
 The stark difference between disk/\texttt{workers=0} (30--36\% overhead) and all other configurations (1--7\%) arises from the loss of CPU/GPU pipeline overlap. With \texttt{workers=0}, the main thread loads data asynchronously with GPU execution; CUDA synchronization blocks this overlap, adding $\sim$20\,s to a 72\,s run. With background workers or slower data pipelines, there is less overlap to lose.
 
 % ============================================================
-% FIGURES PAGE
+% FIGURES
 % ============================================================
 
 \begin{figure*}[t]
     \centering
-    \begin{subfigure}[t]{0.48\textwidth}
+    % --- Row 1: per-phase timing ---
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/phase_time_bars_disk_w0_b32.png}
-        \caption{Per-phase timing: disk, workers=0, batch=32.}
+        \caption{Phase timing (disk, w=0, B=32).}
         \label{fig:phase_bars}
     \end{subfigure}
     \hfill
-    \begin{subfigure}[t]{0.48\textwidth}
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/phase_time_bars_mila_w0_b32.png}
-        \caption{Per-phase timing: Milabench, workers=0, batch=32.}
+        \caption{Phase timing (Milabench, w=0, B=32).}
         \label{fig:phase_bars_mila}
     \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/resource_phases_disk_w0_b32.png}
+        \caption{Per-phase resource violins (disk, w=0, B=32).}
+        \label{fig:phase_violins}
+    \end{subfigure}
 
-    \vspace{0.3cm}
+    \vspace{0.15cm}
 
-    \begin{subfigure}[t]{0.48\textwidth}
+    % --- Row 2: GPU utilization ---
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/gpu_util_disk_w0.png}
-        \caption{GPU utilization across batch sizes (disk, workers=0).}
+        \caption{GPU util.\ across batch sizes (disk, w=0).}
         \label{fig:gpu_util}
     \end{subfigure}
     \hfill
-    \begin{subfigure}[t]{0.48\textwidth}
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/gpu_cpu_util_mila_w0_b32.png}
-        \caption{GPU and CPU utilization (Milabench, workers=0, batch=32).}
+        \caption{GPU and CPU util.\ (Milabench, w=0, B=32).}
         \label{fig:gpu_util_mila}
     \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/gpu_util_disk_w4.png}
+        \caption{GPU util.\ across batch sizes (disk, w=4).}
+        \label{fig:gpu_util_w4}
+    \end{subfigure}
 
-    \vspace{0.3cm}
+    \vspace{0.15cm}
 
-    \begin{subfigure}[t]{0.48\textwidth}
+    % --- Row 3: resource timeline + overhead ---
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/resources_disk_w0.png}
-        \caption{Full resource timeline: disk, workers=0.}
+        \caption{Full resource timeline (disk, w=0).}
         \label{fig:resources}
     \end{subfigure}
     \hfill
-    \begin{subfigure}[t]{0.48\textwidth}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/overhead_vs_noop_w0.png}
+        \caption{Instrumentation overhead (workers=0).}
+        \label{fig:overhead_w0}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/overhead_vs_noop_w4.png}
-        \caption{Instrumentation overhead vs noop (workers=4).}
+        \caption{Instrumentation overhead (workers=4).}
         \label{fig:overhead}
     \end{subfigure}
 
-    \caption{Summary of experimental results. (a--b) Per-phase timing shows backward dominating. (c--d) GPU utilization is $>$95\% at steady state. (e) Full resource timeline shows stable utilization after warm-up. (f) Instrumentation overhead is 1--7\% with workers=4.}
+    \caption{Experimental results. \textbf{Row~1}: Per-phase timing shows backward pass dominating at ${\sim}68\%$; violin plots confirm GPU util.\ drops during forward and spikes during optimizer. \textbf{Row~2}: GPU utilization exceeds 95\% at steady state for both data backends; workers=4 introduces periodic CPU spikes from background loaders. \textbf{Row~3}: Full resource timeline shows stable utilization after warm-up; instrumentation overhead is 30--36\% with workers=0 (dominated by CUDA sync) but only 1--7\% with workers=4.}
     \label{fig:all}
 \end{figure*}
 
@@ -261,9 +300,11 @@ The dominant overhead is \texttt{torch.cuda.synchronize()}, which is \emph{requi
 The disk backend with \texttt{workers=0} completes training in $\sim$72\,s (172 steps), while Milabench takes $\sim$211\,s (500 steps). The $\sim$3$\times$ longer Milabench runtime is due to both more steps (larger dataset) and slower per-step data generation. With \texttt{workers=4} on disk, runtime increases to $\sim$115\,s because background workers introduce inter-process communication overhead that exceeds the benefit for this small, fast-loading dataset.
 
 \textbf{Limitations.}
-(1)~CPU energy is TDP-estimated, not measured via RAPL, so the reported CPU/GPU energy split is unreliable. (2)~Duration for most trainers is parsed from tqdm with integer-second precision; only \texttt{resource\_util\_max} provides millisecond-level accuracy. (3)~All experiments use synthetic data; real audio datasets with variable-length inputs and I/O-bound loading patterns may exhibit different utilization profiles. (4)~We profile a single GPU; multi-GPU training would introduce communication overhead not captured here.
+(1)~CPU energy is TDP-estimated, not measured via RAPL, so the reported CPU/GPU energy split is unreliable. (2)~Training duration is parsed from tqdm with integer-second precision; sub-second accuracy would require additional high-resolution timers. (3)~All experiments use synthetic data; real audio datasets with variable-length inputs and I/O-bound loading patterns may exhibit different utilization profiles. (4)~We profile a single GPU; multi-GPU training would introduce communication overhead not captured here.
 
-\begin{thebibliography}{1}
+\begin{thebibliography}{9}
+\bibitem{milabench} Milabench contributors, ``Milabench,'' GitHub repository, \url{https://github.com/milabench/milabench}.
+\bibitem{codecarbon} CodeCarbon contributors, ``CodeCarbon: Track emissions from computing,'' \url{https://github.com/mlco2/codecarbon}.
 \bibitem{whisper} A.~Radford et al., ``Robust Speech Recognition via Large-Scale Weak Supervision,'' \textit{Proc. ICML}, 2023.
 \end{thebibliography}
 
