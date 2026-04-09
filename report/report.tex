@@ -202,54 +202,61 @@ Figures~\ref{fig:overhead_w0} and~\ref{fig:overhead} compare the overhead of eac
 The stark difference between disk/\texttt{workers=0} (30--36\% overhead) and all other configurations (1--7\%) arises from the loss of CPU/GPU pipeline overlap. With \texttt{workers=0}, the main thread loads data asynchronously with GPU execution; CUDA synchronization blocks this overlap, adding $\sim$24\,s to a 72\,s run. With background workers or slower data pipelines, there is less overlap to lose.
 
 % ============================================================
-% All figures on a single page
+% All figures on a single page — uniform 2-column grid
+% All PNGs share the same aspect ratio (10:6) so width alone
+% produces equal-sized images.
 % ============================================================
+\newlength{\figw}\setlength{\figw}{0.48\textwidth}
+
 \begin{figure*}[p]
 \centering
 
-\begin{minipage}[t]{0.32\textwidth}
+\begin{minipage}[t]{\figw}
     \centering
     \includegraphics[width=\textwidth]{figures/phase_time_bars_disk_w0_b32.png}
     \captionof{figure}{Per-phase timing (disk, w=0, B=32).}
     \label{fig:phase_bars}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.32\textwidth}
+\begin{minipage}[t]{\figw}
     \centering
     \includegraphics[width=\textwidth]{figures/resource_phases_disk_w0_b32.png}
     \captionof{figure}{Per-phase resource distributions (disk, w=0, B=32).}
     \label{fig:phase_violins}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.32\textwidth}
+\end{minipage}
+
+\vspace{2pt}
+
+\begin{minipage}[t]{\figw}
     \centering
     \includegraphics[width=\textwidth]{figures/gpu_util_disk_w0.png}
     \captionof{figure}{GPU utilization across batch sizes (disk, w=0).}
     \label{fig:gpu_util}
-\end{minipage}
-
-\vspace{6pt}
-
-\begin{minipage}[t]{0.48\textwidth}
+\end{minipage}\hfill
+\begin{minipage}[t]{\figw}
     \centering
     \includegraphics[width=\textwidth]{figures/gpu_cpu_util_mila_w0_b32.png}
     \captionof{figure}{GPU and CPU utilization (Milabench, w=0, B=32).}
     \label{fig:gpu_util_mila}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\textwidth}
+\end{minipage}
+
+\vspace{2pt}
+
+\begin{minipage}[t]{\figw}
     \centering
     \includegraphics[width=\textwidth]{figures/resources_disk_w0.png}
     \captionof{figure}{Full resource timeline (disk, w=0).}
     \label{fig:resources}
-\end{minipage}
-
-\vspace{6pt}
-
-\begin{minipage}[t]{0.48\textwidth}
+\end{minipage}\hfill
+\begin{minipage}[t]{\figw}
     \centering
     \includegraphics[width=\textwidth]{figures/overhead_vs_noop_w0.png}
     \captionof{figure}{Instrumentation overhead vs.\ noop (workers=0).}
     \label{fig:overhead_w0}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\textwidth}
+\end{minipage}
+
+\vspace{2pt}
+
+\begin{minipage}[t]{\figw}
     \centering
     \includegraphics[width=\textwidth]{figures/overhead_vs_noop_w4.png}
     \captionof{figure}{Instrumentation overhead vs.\ noop (workers=4).}
