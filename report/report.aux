@@ -15,35 +15,35 @@
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Mean training duration (seconds), averaged over 3 runs.}}{2}{table.caption.1}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
 \newlabel{tab:e2e_time}{{1}{2}{Mean training duration (seconds), averaged over 3 runs}{table.caption.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}End-to-End Energy Consumption}{2}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}End-to-End Energy Consumption}{3}{subsection.4.2}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Mean energy consumption (kWh) from CodeCarbon, averaged over 3 runs.}}{3}{table.caption.2}\protected@file@percent }
 \newlabel{tab:energy}{{2}{3}{Mean energy consumption (kWh) from CodeCarbon, averaged over 3 runs}{table.caption.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Per-Phase Timing Analysis}{3}{subsection.4.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}System Utilization}{3}{subsection.4.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Batch Size Effects}{3}{subsection.4.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Instrumentation Overhead}{3}{subsection.4.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{3}{section.5}\protected@file@percent }
 \bibcite{milabench}{1}
 \bibcite{codecarbon}{2}
 \bibcite{whisper}{3}
-\newlabel{fig:phase_bars}{{1a}{5}{Phase timing (disk, w=0, B=32)}{figure.caption.3}{}}
-\newlabel{sub@fig:phase_bars}{{a}{5}{Phase timing (disk, w=0, B=32)}{figure.caption.3}{}}
-\newlabel{fig:phase_bars_mila}{{1b}{5}{Phase timing (Milabench, w=0, B=32)}{figure.caption.3}{}}
-\newlabel{sub@fig:phase_bars_mila}{{b}{5}{Phase timing (Milabench, w=0, B=32)}{figure.caption.3}{}}
-\newlabel{fig:phase_violins}{{1c}{5}{Per-phase resource violins (disk, w=0, B=32)}{figure.caption.3}{}}
-\newlabel{sub@fig:phase_violins}{{c}{5}{Per-phase resource violins (disk, w=0, B=32)}{figure.caption.3}{}}
-\newlabel{fig:gpu_util}{{1d}{5}{GPU util.\ across batch sizes (disk, w=0)}{figure.caption.3}{}}
-\newlabel{sub@fig:gpu_util}{{d}{5}{GPU util.\ across batch sizes (disk, w=0)}{figure.caption.3}{}}
-\newlabel{fig:gpu_util_mila}{{1e}{5}{GPU and CPU util.\ (Milabench, w=0, B=32)}{figure.caption.3}{}}
-\newlabel{sub@fig:gpu_util_mila}{{e}{5}{GPU and CPU util.\ (Milabench, w=0, B=32)}{figure.caption.3}{}}
-\newlabel{fig:gpu_util_w4}{{1f}{5}{GPU util.\ across batch sizes (disk, w=4)}{figure.caption.3}{}}
-\newlabel{sub@fig:gpu_util_w4}{{f}{5}{GPU util.\ across batch sizes (disk, w=4)}{figure.caption.3}{}}
-\newlabel{fig:resources}{{1g}{5}{Full resource timeline (disk, w=0)}{figure.caption.3}{}}
-\newlabel{sub@fig:resources}{{g}{5}{Full resource timeline (disk, w=0)}{figure.caption.3}{}}
-\newlabel{fig:overhead_w0}{{1h}{5}{Instrumentation overhead (workers=0)}{figure.caption.3}{}}
-\newlabel{sub@fig:overhead_w0}{{h}{5}{Instrumentation overhead (workers=0)}{figure.caption.3}{}}
-\newlabel{fig:overhead}{{1i}{5}{Instrumentation overhead (workers=4)}{figure.caption.3}{}}
-\newlabel{sub@fig:overhead}{{i}{5}{Instrumentation overhead (workers=4)}{figure.caption.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Experimental results. \textbf  {Row~1}: Per-phase timing shows backward pass dominating at ${\sim }68\%$; violin plots confirm GPU util.\ drops during forward and spikes during optimizer. \textbf  {Row~2}: GPU utilization exceeds 95\% at steady state for both data backends; workers=4 introduces periodic CPU spikes from background loaders. \textbf  {Row~3}: Full resource timeline shows stable utilization after warm-up; instrumentation overhead is 30--36\% with workers=0 (dominated by CUDA sync) but only 1--7\% with workers=4.}}{5}{figure.caption.3}\protected@file@percent }
-\newlabel{fig:all}{{1}{5}{Experimental results. \textbf {Row~1}: Per-phase timing shows backward pass dominating at ${\sim }68\%$; violin plots confirm GPU util.\ drops during forward and spikes during optimizer. \textbf {Row~2}: GPU utilization exceeds 95\% at steady state for both data backends; workers=4 introduces periodic CPU spikes from background loaders. \textbf {Row~3}: Full resource timeline shows stable utilization after warm-up; instrumentation overhead is 30--36\% with workers=0 (dominated by CUDA sync) but only 1--7\% with workers=4}{figure.caption.3}{}}
-\gdef \@abspage@last{5}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{4}{section.5}\protected@file@percent }
+\newlabel{fig:phase_bars}{{1a}{6}{Phase timing (disk, w=0, B=32)}{figure.caption.3}{}}
+\newlabel{sub@fig:phase_bars}{{a}{6}{Phase timing (disk, w=0, B=32)}{figure.caption.3}{}}
+\newlabel{fig:phase_bars_mila}{{1b}{6}{Phase timing (Milabench, w=0, B=32)}{figure.caption.3}{}}
+\newlabel{sub@fig:phase_bars_mila}{{b}{6}{Phase timing (Milabench, w=0, B=32)}{figure.caption.3}{}}
+\newlabel{fig:phase_violins}{{1c}{6}{Per-phase resource violins (disk, w=0, B=32)}{figure.caption.3}{}}
+\newlabel{sub@fig:phase_violins}{{c}{6}{Per-phase resource violins (disk, w=0, B=32)}{figure.caption.3}{}}
+\newlabel{fig:gpu_util}{{1d}{6}{GPU util.\ across batch sizes (disk, w=0)}{figure.caption.3}{}}
+\newlabel{sub@fig:gpu_util}{{d}{6}{GPU util.\ across batch sizes (disk, w=0)}{figure.caption.3}{}}
+\newlabel{fig:gpu_util_mila}{{1e}{6}{GPU and CPU util.\ (Milabench, w=0, B=32)}{figure.caption.3}{}}
+\newlabel{sub@fig:gpu_util_mila}{{e}{6}{GPU and CPU util.\ (Milabench, w=0, B=32)}{figure.caption.3}{}}
+\newlabel{fig:gpu_util_w4}{{1f}{6}{GPU util.\ across batch sizes (disk, w=4)}{figure.caption.3}{}}
+\newlabel{sub@fig:gpu_util_w4}{{f}{6}{GPU util.\ across batch sizes (disk, w=4)}{figure.caption.3}{}}
+\newlabel{fig:resources}{{1g}{6}{Full resource timeline (disk, w=0)}{figure.caption.3}{}}
+\newlabel{sub@fig:resources}{{g}{6}{Full resource timeline (disk, w=0)}{figure.caption.3}{}}
+\newlabel{fig:overhead_w0}{{1h}{6}{Instrumentation overhead (workers=0)}{figure.caption.3}{}}
+\newlabel{sub@fig:overhead_w0}{{h}{6}{Instrumentation overhead (workers=0)}{figure.caption.3}{}}
+\newlabel{fig:overhead}{{1i}{6}{Instrumentation overhead (workers=4)}{figure.caption.3}{}}
+\newlabel{sub@fig:overhead}{{i}{6}{Instrumentation overhead (workers=4)}{figure.caption.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Experimental results. \textbf  {Row~1}: Per-phase timing shows backward pass dominating at ${\sim }68\%$; violin plots confirm GPU util.\ drops during forward and spikes during optimizer. \textbf  {Row~2}: GPU utilization exceeds 95\% at steady state for both data backends; workers=4 introduces periodic CPU spikes from background loaders. \textbf  {Row~3}: Full resource timeline shows stable utilization after warm-up; instrumentation overhead is 30--36\% with workers=0 (dominated by CUDA sync) but only 1--7\% with workers=4.}}{6}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:all}{{1}{6}{Experimental results. \textbf {Row~1}: Per-phase timing shows backward pass dominating at ${\sim }68\%$; violin plots confirm GPU util.\ drops during forward and spikes during optimizer. \textbf {Row~2}: GPU utilization exceeds 95\% at steady state for both data backends; workers=4 introduces periodic CPU spikes from background loaders. \textbf {Row~3}: Full resource timeline shows stable utilization after warm-up; instrumentation overhead is 30--36\% with workers=0 (dominated by CUDA sync) but only 1--7\% with workers=4}{figure.caption.3}{}}
+\gdef \@abspage@last{6}
